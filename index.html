@@ -226,13 +226,13 @@
             <button class="tool-btn" id="btn-hide-toolbar" title="Ocultar Barra">
                 <i class='bx bx-chevron-down'></i>
             </button>
+            <button class="tool-btn permanent-tool" id="btn-show-toolbar-inline" title="Mostrar Barra completa">
+                <i class='bx bx-chevron-up'></i>
+            </button>
         </div>
     </div>
 
-    <!-- Botón para volver a mostrar la barra -->
-    <button id="btn-show-toolbar" title="Mostrar Barra" class="show-toolbar-btn">
-        <i class='bx bx-chevron-up'></i>
-    </button>
+    <!-- Botón antiguo eliminado -->
 
     <!-- Side Panel (Vertical Palette) -->
     <div class="side-panel" id="side-palette">
@@ -255,6 +255,74 @@
             <h4 class="panel-title">Trazo</h4>
             <div class="range-container vertical">
                 <input type="range" id="stroke-width" min="1" max="50" value="4" orient="vertical">
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Right Settings Button -->
+    <div class="settings-trigger" id="btn-open-settings" title="Configuración de Cursos">
+        <i class='bx bx-cog'></i>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="settings-card">
+            <div class="modal-header">
+                <div class="header-title">
+                    <i class='bx bx-cog'></i>
+                    <h3>Configuración de Aula</h3>
+                </div>
+                <button class="close-modal" id="btn-close-settings">&times;</button>
+            </div>
+            
+            <div class="settings-body">
+                <div class="settings-sidebar">
+                    <button class="nav-btn active" data-target="course-section">
+                        <i class='bx bx-book-bookmark'></i>
+                        <span>Cursos</span>
+                    </button>
+                    <button class="nav-btn" data-target="student-section">
+                        <i class='bx bx-group'></i>
+                        <span>Estudiantes</span>
+                    </button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- Courses Section -->
+                    <div class="config-section active" id="course-section">
+                        <div class="section-header">
+                            <h4>Gestionar Cursos</h4>
+                            <p>Añade los grados o secciones con los que trabajas.</p>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="course-input" placeholder="Nombre del curso (ej: 5to Básico A)">
+                            <button class="btn-add" id="add-course-btn">Añadir</button>
+                        </div>
+                        <div class="list-container" id="courses-list">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+
+                    <!-- Students Section -->
+                    <div class="config-section" id="student-section">
+                        <div class="section-header">
+                            <h4>Gestionar Estudiantes</h4>
+                            <p>Selecciona un curso y añade a tus alumnos.</p>
+                        </div>
+                        <div class="select-wrapper">
+                            <select id="course-selector-for-students">
+                                <option value="">Selecciona un curso primero...</option>
+                            </select>
+                        </div>
+                        <div class="input-group bulk-input">
+                            <textarea id="student-input" placeholder="Pega aquí la lista de alumnos (un nombre por línea)"></textarea>
+                            <button class="btn-add" id="add-student-btn">Añadir Lista</button>
+                        </div>
+                        <div class="list-container" id="students-list">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

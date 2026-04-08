@@ -69,7 +69,7 @@ function saveState() {
     if (isStateChanging) return;
     
     // Guardar estado actual en JSON
-    const state = JSON.stringify(canvas.toJSON(['angleId', 'lineId', 'pA', 'pB', 'pC', 'angleArc', 'radius']));
+    const state = JSON.stringify(canvas.toJSON(['angleId', 'lineId', 'role', 'pA', 'pB', 'pC', 'angleArc', 'radius', 'selectionBackgroundColor']));
     
     // Si el último estado es igual al actual, no guardar (evitar duplicados)
     if (undoStack.length > 0 && undoStack[undoStack.length - 1] === state) return;
@@ -192,7 +192,8 @@ function setActiveTool(activeBtn) {
         canvas.defaultCursor = 'grab';
         canvas.hoverCursor = 'grab';
     } else {
-        canvas.selection = true;
+        // Desactivar selección múltiple (cuadro azul) si estamos en modo dibujo (línea, ángulo, polígono)
+        canvas.selection = !(isDrawingLine || isDrawingAngle || isDrawingPolygon || isRecognitionMode);
         canvas.forEachObject(obj => obj.set('selectable', true));
         canvas.defaultCursor = 'default';
         canvas.hoverCursor = 'move';
@@ -287,8 +288,20 @@ function bindPaletteEvents() {
                                 if (o.type === 'circle' || o.type === 'text') o.set({ fill: currentColor });
                             }
                         });
+                    } else if (obj.lineId) {
+                        canvas.getObjects().forEach(o => {
+                            if (o.lineId === obj.lineId) {
+                                if (o.type === 'line') o.set({ stroke: currentColor });
+                                if (o.type === 'circle') o.set({ fill: currentColor });
+                            }
+                        });
                     } else {
-                        obj.set({ stroke: currentColor });
+                        // Para texto usamos fill, para el resto stroke
+                        if (obj.type === 'text' || obj.type === 'i-text') {
+                            obj.set({ fill: currentColor });
+                        } else {
+                            obj.set({ stroke: currentColor });
+                        }
                     }
                 });
                 canvas.requestRenderAll();
@@ -504,17 +517,21 @@ function createInteractiveAngle(pts, color, width, angleId) {
 
 function createInteractiveLine(p1, p2, color, width, lineId) {
     const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
-        stroke: color, 
-        strokeWidth: width, 
-        selectable: true, 
-        evented: true, 
-        hasBorders: false, 
-        hasControls: false, 
-        perPixelTargetFind: true, 
+        stroke: color,
+        strokeWidth: width,
+        selectable: true,
+        hasBorders: false,
+        hasControls: false,
+        perPixelTargetFind: true,
         targetFindTolerance: 15,
         strokeLineCap: 'round',
-        lineId: lineId
+        lineId: lineId,
+        strokeUniform: true,
+        selectionBackgroundColor: 'transparent',
     });
+
+    // Desactivar rotación para mantener la simplicidad
+    line.setControlsVisibility({ mtr: false });
 
     canvas.add(line);
     canvas.requestRenderAll();
@@ -536,16 +553,19 @@ canvas.on('mouse:down', (e) => {
 
     if (isDrawingLine) {
         const pointer = canvas.getPointer(e.e);
-        lineTempPts = [{x: pointer.x, y: pointer.y}];
+        const snappedX = snapToGrid(pointer.x);
+        const snappedY = snapToGrid(pointer.y);
+        lineTempPts = [{x: snappedX, y: snappedY}];
         activeLineId = Date.now();
         
-        activeLine = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+        activeLine = new fabric.Line([snappedX, snappedY, snappedX, snappedY], {
             stroke: currentColor,
             strokeWidth: parseInt(strokeWidthSlider.value, 10),
             selectable: false,
             evented: false,
             originX: 'center', 
-            originY: 'center'
+            originY: 'center',
+            selectionBackgroundColor: 'transparent'
         });
         canvas.add(activeLine);
         return;
@@ -711,7 +731,7 @@ canvas.on('mouse:move', (e) => {
 
     if (isDrawingLine && isMouseDown && activeLine) {
         const pointer = canvas.getPointer(e.e);
-        activeLine.set({ x2: pointer.x, y2: pointer.y });
+        activeLine.set({ x2: snapToGrid(pointer.x), y2: snapToGrid(pointer.y) });
         canvas.requestRenderAll();
     }
 
@@ -741,7 +761,8 @@ canvas.on('mouse:up', () => {
 
     if (isDrawingLine && activeLine) {
         const pointer = canvas.getPointer(lastMouseEvent.e);
-        lineTempPts.push({x: pointer.x, y: pointer.y});
+        const snappedEnd = { x: snapToGrid(pointer.x), y: snapToGrid(pointer.y) };
+        lineTempPts.push(snappedEnd);
         
         canvas.remove(activeLine);
         createInteractiveLine(
@@ -754,7 +775,8 @@ canvas.on('mouse:up', () => {
         
         activeLine = null;
         lineTempPts = [];
-        setActiveTool(btnSelect);
+        // Eliminado setActiveTool(btnSelect) para mantener la herramienta activa
+        canvas.discardActiveObject().requestRenderAll();
     }
     isMouseDown = false;
 });
@@ -864,7 +886,7 @@ function performRecognition() {
             });
 
             canvas.add(digitalNumber);
-            canvas.setActiveObject(digitalNumber);
+            // No seleccionamos automáticamente para que no cambie de color al elegir el siguiente
             canvas.requestRenderAll();
         }
 
@@ -947,7 +969,7 @@ function processNewShape(shape) {
     canvas.isDrawingMode = false;
     canvas.add(shape);
     canvas.centerObject(shape);
-    canvas.setActiveObject(shape);
+    // No seleccionamos automáticamente para evitar cambios de color accidentales
     setActiveTool(btnSelect);
 }
 
@@ -1086,10 +1108,8 @@ function loadSettings() {
         // Restaurar Barra de Herramientas
         if (settings.toolbarHidden) {
             toolbar.classList.add('hidden');
-            btnShowToolbar.classList.add('active');
         } else {
             toolbar.classList.remove('hidden');
-            btnShowToolbar.classList.remove('active');
         }
     } catch (e) {
         console.error("Error cargando configuración:", e);
@@ -1108,6 +1128,12 @@ function updateGridSize() {
     if (isGridActive) {
         document.body.style.backgroundSize = `${sizePx} ${sizePx}`;
     }
+}
+
+function snapToGrid(value) {
+    if (!isGridActive) return value;
+    const size = parseInt(gridSizeSlider.value, 10);
+    return Math.round(value / size) * size;
 }
 
 // Fullscreen Handling
@@ -1137,11 +1163,12 @@ document.addEventListener('fullscreenchange', () => {
 fabric.Object.prototype.set({
     transparentCorners: false,
     cornerColor: '#ffffff',
-    cornerStrokeColor: '#4f46e5',
-    borderColor: '#4f46e5',
+    cornerStrokeColor: '#6366f1',
+    borderColor: '#6366f1',
     cornerSize: 10,
     padding: 8,
-    cornerStyle: 'circle'
+    cornerStyle: 'circle',
+    selectionBackgroundColor: 'transparent'
 });
 
 // --- Lógica de la Fecha ---
@@ -1452,17 +1479,15 @@ makeDraggable(timerWidget, timerHeader);
 // --- Ocultar/Mostrar Barra de Herramientas ---
 const toolbar = document.querySelector('.toolbar');
 const btnHideToolbar = document.getElementById('btn-hide-toolbar');
-const btnShowToolbar = document.getElementById('btn-show-toolbar');
+const btnShowToolbarInline = document.getElementById('btn-show-toolbar-inline');
 
 btnHideToolbar.addEventListener('click', () => {
     toolbar.classList.add('hidden');
-    btnShowToolbar.classList.add('active');
     saveSettings();
 });
 
-btnShowToolbar.addEventListener('click', () => {
+btnShowToolbarInline.addEventListener('click', () => {
     toolbar.classList.remove('hidden');
-    btnShowToolbar.classList.remove('active');
     saveSettings();
 });
 
@@ -1767,3 +1792,185 @@ updateTimerDisplay();
 
 // Cargar configuración guardada
 setTimeout(loadSettings, 100);
+
+// --- Lógica de Configuración (Cursos y Estudiantes) ---
+let courseData = JSON.parse(localStorage.getItem('pizarraCourseData')) || [];
+
+function saveCourseData() {
+    localStorage.setItem('pizarraCourseData', JSON.stringify(courseData));
+    renderCourses();
+    updateCourseSelector();
+}
+
+function renderCourses() {
+    const list = document.getElementById('courses-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    courseData.forEach((course, index) => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.innerHTML = `
+            <div class="item-info">
+                <i class='bx bx-book-bookmark'></i>
+                <span>${course.name} (${course.students.length} alumnos)</span>
+            </div>
+            <div class="item-actions">
+                <button onclick="deleteCourse(${index})"><i class='bx bx-trash'></i></button>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function updateCourseSelector() {
+    const selector = document.getElementById('course-selector-for-students');
+    if (!selector) return;
+    
+    const currentValue = selector.value;
+    selector.innerHTML = '<option value="">Selecciona un curso...</option>';
+    
+    courseData.forEach((course) => {
+        const opt = document.createElement('option');
+        opt.value = course.id;
+        opt.textContent = course.name;
+        selector.appendChild(opt);
+    });
+    
+    selector.value = currentValue;
+    renderStudents();
+}
+
+function renderStudents() {
+    const selector = document.getElementById('course-selector-for-students');
+    const list = document.getElementById('students-list');
+    if (!list || !selector) return;
+    
+    list.innerHTML = '';
+    const courseId = selector.value;
+    if (!courseId) return;
+    
+    const course = courseData.find(c => c.id === courseId);
+    if (!course) return;
+    
+    course.students.forEach((student, index) => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.innerHTML = `
+            <div class="item-info">
+                <i class='bx bx-user'></i>
+                <span>${student}</span>
+            </div>
+            <div class="item-actions">
+                <button onclick="deleteStudent('${courseId}', ${index})"><i class='bx bx-trash'></i></button>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// Modal Toggle
+const settingsModal = document.getElementById('settings-modal');
+const btnOpenSettings = document.getElementById('btn-open-settings');
+const btnCloseSettings = document.getElementById('btn-close-settings');
+
+if (btnOpenSettings) {
+    btnOpenSettings.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+        renderCourses();
+        updateCourseSelector();
+    });
+}
+
+if (btnCloseSettings) {
+    btnCloseSettings.addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+    });
+}
+
+// Cerrar modal al hacer clic fuera
+window.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.classList.remove('active');
+    }
+});
+
+// Navigation
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.config-section').forEach(s => s.classList.remove('active'));
+        
+        btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.add('active');
+    });
+});
+
+// Actions
+const btnAddCourse = document.getElementById('add-course-btn');
+if (btnAddCourse) {
+    btnAddCourse.addEventListener('click', () => {
+        const input = document.getElementById('course-input');
+        const name = input.value.trim();
+        if (name) {
+            courseData.push({ id: Date.now().toString(), name: name, students: [] });
+            input.value = '';
+            saveCourseData();
+        }
+    });
+}
+
+window.deleteCourse = function(index) {
+    if (confirm('¿Eliminar este curso? Se borrarán todos sus alumnos.')) {
+        courseData.splice(index, 1);
+        saveCourseData();
+    }
+};
+
+const studentCourseSelector = document.getElementById('course-selector-for-students');
+if (studentCourseSelector) {
+    studentCourseSelector.addEventListener('change', renderStudents);
+}
+
+const btnAddStudent = document.getElementById('add-student-btn');
+if (btnAddStudent) {
+    btnAddStudent.addEventListener('click', () => {
+        const selector = document.getElementById('course-selector-for-students');
+        const input = document.getElementById('student-input');
+        const rawContent = input.value;
+        const courseId = selector.value;
+        
+        if (rawContent && courseId) {
+            const course = courseData.find(c => c.id === courseId);
+            if (course) {
+                // Dividir por líneas, limpiar espacios y quitar vacíos
+                const newStudents = rawContent.split('\n')
+                                              .map(s => s.trim())
+                                              .filter(s => s.length > 0);
+                                              
+                if (newStudents.length > 0) {
+                    course.students.push(...newStudents);
+                    input.value = '';
+                    saveCourseData();
+                    renderStudents();
+                }
+            }
+        } else if (!courseId) {
+            alert('Por favor selecciona un curso primero.');
+        }
+    });
+}
+
+window.deleteStudent = function(courseId, index) {
+    const course = courseData.find(c => c.id === courseId);
+    if (course) {
+        course.students.splice(index, 1);
+        saveCourseData();
+        renderStudents();
+    }
+};
+
+// Aplicar arrastre a otros widgets si fuera necesario, pero el de configuración se queda fijo
+// makeDraggable(document.getElementById('btn-open-settings'), document.getElementById('btn-open-settings'));
+
