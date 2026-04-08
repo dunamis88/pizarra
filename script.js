@@ -1076,12 +1076,12 @@ function loadSettings() {
             document.body.classList.add('show-grid');
             btnGrid.classList.add('active');
             bgGroup.classList.remove('grid-disabled');
-            updateGridSize();
         } else {
             document.body.classList.remove('show-grid');
             btnGrid.classList.remove('active');
             bgGroup.classList.add('grid-disabled');
         }
+        updateGridSize(); // Actualizar siempre (etiqueta + fondo si aplica)
         
         // Restaurar Barra de Herramientas
         if (settings.toolbarHidden) {
@@ -1098,9 +1098,15 @@ function loadSettings() {
 
 
 function updateGridSize() {
+    const size = gridSizeSlider.value;
+    const sizePx = size + 'px';
+    
+    // Actualizar el número al lado del slider
+    const valueLabel = document.getElementById('grid-size-value');
+    if (valueLabel) valueLabel.textContent = size;
+    
     if (isGridActive) {
-        const size = gridSizeSlider.value + 'px';
-        document.body.style.backgroundSize = `${size} ${size}`;
+        document.body.style.backgroundSize = `${sizePx} ${sizePx}`;
     }
 }
 
