@@ -774,7 +774,7 @@ canvas.on('path:created', (e) => {
     
     recognitionTimer = setTimeout(() => {
         performRecognition();
-    }, 1000); // Esperar 1 segundo tras el último trazo para reconocer el número
+    }, 200); // Esperar 0.2 segundos tras el último trazo para reconocer el número
 });
 
 function performRecognition() {
@@ -1043,9 +1043,59 @@ btnGrid.addEventListener('click', () => {
         btnGrid.classList.remove('active');
         bgGroup.classList.add('grid-disabled');
     }
+    saveSettings();
 });
 
-gridSizeSlider.addEventListener('input', updateGridSize);
+
+gridSizeSlider.addEventListener('input', () => {
+    updateGridSize();
+    saveSettings();
+});
+
+function saveSettings() {
+    const settings = {
+        gridActive: isGridActive,
+        gridSize: gridSizeSlider.value,
+        toolbarHidden: toolbar.classList.contains('hidden')
+    };
+    localStorage.setItem('pizarraSettings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const saved = localStorage.getItem('pizarraSettings');
+    if (!saved) return;
+    
+    try {
+        const settings = JSON.parse(saved);
+        
+        // Restaurar Cuadrícula
+        isGridActive = settings.gridActive;
+        if (settings.gridSize) gridSizeSlider.value = settings.gridSize;
+        
+        if (isGridActive) {
+            document.body.classList.add('show-grid');
+            btnGrid.classList.add('active');
+            bgGroup.classList.remove('grid-disabled');
+            updateGridSize();
+        } else {
+            document.body.classList.remove('show-grid');
+            btnGrid.classList.remove('active');
+            bgGroup.classList.add('grid-disabled');
+        }
+        
+        // Restaurar Barra de Herramientas
+        if (settings.toolbarHidden) {
+            toolbar.classList.add('hidden');
+            btnShowToolbar.classList.add('active');
+        } else {
+            toolbar.classList.remove('hidden');
+            btnShowToolbar.classList.remove('active');
+        }
+    } catch (e) {
+        console.error("Error cargando configuración:", e);
+    }
+}
+
 
 function updateGridSize() {
     if (isGridActive) {
@@ -1401,11 +1451,13 @@ const btnShowToolbar = document.getElementById('btn-show-toolbar');
 btnHideToolbar.addEventListener('click', () => {
     toolbar.classList.add('hidden');
     btnShowToolbar.classList.add('active');
+    saveSettings();
 });
 
 btnShowToolbar.addEventListener('click', () => {
     toolbar.classList.remove('hidden');
     btnShowToolbar.classList.remove('active');
+    saveSettings();
 });
 
 // --- Herramienta de Transportador SVG ---
@@ -1706,3 +1758,6 @@ makeDraggable(dateWidget, dateWidget);
 updateDateDisplay();
 renderCalendar();
 updateTimerDisplay();
+
+// Cargar configuración guardada
+setTimeout(loadSettings, 100);

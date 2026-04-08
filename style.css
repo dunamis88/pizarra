@@ -66,9 +66,21 @@ body {
 }
 
 .toolbar.hidden {
-    transform: translateX(-50%) translateY(120px);
-    opacity: 0;
-    pointer-events: none;
+    padding: 6px 10px;
+    border-radius: 16px;
+    gap: 8px;
+}
+
+.toolbar.hidden .tool-btn:not(.permanent-tool),
+.toolbar.hidden .divider,
+.toolbar.hidden .dropup,
+.toolbar.hidden .polygon-container,
+.toolbar.hidden #btn-hide-toolbar {
+    display: none;
+}
+
+.toolbar.hidden .tool-group {
+    gap: 5px;
 }
 
 .show-toolbar-btn {
