@@ -7,9 +7,12 @@ const canvas = new fabric.Canvas('canvas', {
 
 // Fullscreen canvas setup
 function resizeCanvas() {
-    canvas.setWidth(window.innerWidth);
-    canvas.setHeight(window.innerHeight);
-    canvas.renderAll();
+    const wrapper = document.querySelector('.canvas-panel');
+    if (wrapper) {
+        canvas.setWidth(wrapper.clientWidth);
+        canvas.setHeight(wrapper.clientHeight);
+        canvas.renderAll();
+    }
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -1971,6 +1974,159 @@ window.deleteStudent = function(courseId, index) {
     }
 };
 
-// Aplicar arrastre a otros widgets si fuera necesario, pero el de configuración se queda fijo
-// makeDraggable(document.getElementById('btn-open-settings'), document.getElementById('btn-open-settings'));
+// --- Inicialización de Datos Ficticios para Pruebas ---
+function initDummyData() {
+    if (courseData.length === 0) {
+        courseData.push({
+            id: 'dummy-6c-mat',
+            name: '6° C - Matemáticas',
+            students: [
+                'Lucas García', 'Sofía Martínez', 'Mateo Rodríguez', 'Valentina Pérez',
+                'Nicolás Soto', 'Isidora Morales', 'Benjamín Muñoz', 'Florencia Herrera',
+                'Matías Silva', 'Antonia Castro', 'Diego Figueroa', 'Emilia Espinoza',
+                'Joaquín Lagos', 'Martina Rojas', 'Gabriel Valenzuela', 'Josefa Díaz',
+                'Tomás Ibáñez', 'Fernanda Torres', 'Agustín Jara', 'Amaya Vidal',
+                'Vicente Fuentes', 'Ignacia Araya', 'Felipe Reyes', 'Pascal Carrasco',
+                'Maximiliano Vera', 'Maite Bravo', 'Cristóbal Contreras', 'Antonella Sepúlveda',
+                'Sebastián Henríquez', 'Amanda Godoy', 'Alonso Guzmán', 'Catalina Sanhueza',
+                'Bastián Pizarro', 'Isabel Palma', 'Julián Rivas', 'Trinidad Méndez',
+                'Renato Salinas', 'Javiera Paredes', 'Esteban Ortiz', 'Elena Núñez'
+            ]
+        });
+        courseData.push({
+            id: 'dummy-6c-len',
+            name: '6° C - Lenguaje',
+            students: [
+                'Alejandro Vega', 'Camila Soto', 'Rodrigo Paillán', 'Paula Quintanilla',
+                'Daniel Arroyo', 'Natalia Cáceres', 'Francisco Leiva', 'Carla Venegas',
+                'Manuel Saavedra', 'Andrea Lagos', 'Ricardo Urbina', 'Claudia Meneses',
+                'Sergio Valdés', 'Beatriz Ahumada', 'Roberto Farías', 'Diana Monsalve',
+                'Alberto Osorio', 'Gloria Villalobos', 'Fernando Maturana', 'Julia Carrasco',
+                'Héctor Donoso', 'Marta Vergara', 'Raúl Bizama', 'Rosa Faúndez',
+                'Enrique San Martín', 'Silvia Orellana', 'Hugo Tello', 'Inés Gallegos',
+                'Iván Canales', 'Julieta Parra', 'Juan Pablo Roco', 'Laura Santis',
+                'Luis Felipe Mora', 'María José Pino', 'Mario Duarte', 'Mónica Gatica',
+                'Miguel Ángel Cordero', 'Nuria Espina', 'Óscar Navarro', 'Olga Varas'
+            ]
+        });
+        saveCourseData();
+    }
+}
+initDummyData();
+
+// --- Lógica de la Ruleta (Random Picker) ---
+const randomPickerWidget = document.getElementById('random-picker');
+const btnTogglePicker = document.getElementById('btn-toggle-picker');
+const btnClosePicker = document.getElementById('btn-close-picker');
+const pickerCourseSelect = document.getElementById('picker-course-select');
+const btnSpinStart = document.getElementById('btn-spin-start');
+const randomResult = document.getElementById('random-result');
+const historyList = document.getElementById('history-list');
+const btnResetHistory = document.getElementById('btn-reset-history');
+
+let pickerHistory = [];
+
+function updatePickerCourseOptions() {
+    if (!pickerCourseSelect) return;
+    const currentVal = pickerCourseSelect.value;
+    pickerCourseSelect.innerHTML = '<option value="">Selecciona un curso...</option>';
+    courseData.forEach(course => {
+        const opt = document.createElement('option');
+        opt.value = course.id;
+        opt.textContent = course.name;
+        pickerCourseSelect.appendChild(opt);
+    });
+    if (currentVal) pickerCourseSelect.value = currentVal;
+}
+
+btnTogglePicker.addEventListener('click', () => {
+    randomPickerWidget.classList.toggle('active');
+    updatePickerCourseOptions();
+    // Re-dimensionar el canvas ya que el espacio disponible cambia
+    setTimeout(resizeCanvas, 50); 
+});
+
+btnClosePicker.addEventListener('click', () => {
+    randomPickerWidget.classList.remove('active');
+    setTimeout(resizeCanvas, 50);
+});
+
+btnSpinStart.addEventListener('click', () => {
+    const courseId = pickerCourseSelect.value;
+    if (!courseId) {
+        alert('Por favor selecciona un curso primero.');
+        return;
+    }
+
+    const course = courseData.find(c => c.id === courseId);
+    if (!course || course.students.length === 0) {
+        alert('Este curso no tiene estudiantes.');
+        return;
+    }
+
+    // Filtrar estudiantes que no han salido todavía
+    const availableStudents = course.students.filter(s => !pickerHistory.includes(s));
+
+    if (availableStudents.length === 0) {
+        alert('¡Todos los estudiantes ya han participado! Reinicia el historial para continuar.');
+        return;
+    }
+
+    // Animación de sorteo
+    btnSpinStart.disabled = true;
+    randomResult.classList.add('animating');
+    
+    let duration = 1000;
+    let interval = setInterval(() => {
+        const tempIndex = Math.floor(Math.random() * availableStudents.length);
+        randomResult.textContent = availableStudents[tempIndex];
+    }, 100);
+
+    setTimeout(() => {
+        clearInterval(interval);
+        randomResult.classList.remove('animating');
+        
+        // Resultado final
+        const finalIndex = Math.floor(Math.random() * availableStudents.length);
+        const winnersName = availableStudents[finalIndex];
+        
+        randomResult.textContent = winnersName;
+        pickerHistory.push(winnersName);
+        renderPickerHistory();
+        btnSpinStart.disabled = false;
+    }, duration);
+});
+
+function renderPickerHistory() {
+    historyList.innerHTML = '';
+    pickerHistory.forEach((name, index) => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+            <span class="history-name"><small>${index + 1}.</small> ${name}</span>
+            <button class="btn-remove-history" onclick="removeFromHistory(${index})">
+                <i class='bx bx-x'></i>
+            </button>
+        `;
+        historyList.appendChild(item);
+    });
+    // Auto scroll al final del historial
+    historyList.scrollTop = historyList.scrollHeight;
+}
+
+window.removeFromHistory = function(index) {
+    pickerHistory.splice(index, 1);
+    renderPickerHistory();
+};
+
+btnResetHistory.addEventListener('click', () => {
+    pickerHistory = [];
+    renderPickerHistory();
+    randomResult.textContent = '¿Quién será?';
+});
+
+// Hacer el widget de ruleta arrastrable
+// Hacer el widget de ruleta ya no es arrastrable por ser sidebar
+// makeDraggable(randomPickerWidget, randomPickerWidget.querySelector('.picker-header'));
+
 

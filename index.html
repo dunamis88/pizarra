@@ -23,9 +23,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="canvas-container-wrapper">
-        <canvas id="canvas"></canvas>
-    </div>
+    <div class="app-container">
+        <div class="canvas-panel">
+            <div class="canvas-container-wrapper">
+                <canvas id="canvas"></canvas>
+            </div>
 
     <!-- Top Left Date Widget -->
     <div class="top-widget date-widget" id="date-widget" style="display: none;">
@@ -96,29 +98,43 @@
                     <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
                 </svg>
             </button>
-            <button class="tool-btn permanent-tool" id="btn-draw" title="Lápiz / Dibujar">
-                <i class='bx bx-pencil'></i>
-            </button>
-            <button class="tool-btn" id="btn-line" title="Línea Recta">
-                <i class='bx bx-minus'></i>
-            </button>
+            <div class="tool-group dropup">
+                <button class="tool-btn dropbtn" title="Herramientas de Trazado">
+                    <i class='bx bx-edit-alt'></i>
+                </button>
+                <div class="dropup-content">
+                    <button class="tool-btn" id="btn-draw" title="Lápiz / Dibujar">
+                        <i class='bx bx-pencil'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-line" title="Línea Recta">
+                        <i class='bx bx-minus'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-ocr" title="Reconocimiento de Texto y Números">
+                        <span style="font-size: 14px; font-weight: bold;">ABC</span>
+                    </button>
+                </div>
+            </div>
             <button class="tool-btn" id="btn-eraser" title="Goma de Borrar">
                 <i class='bx bxs-eraser'></i>
-            </button>
-            <button class="tool-btn" id="btn-ocr" title="Reconocimiento de Texto y Números">
-                <span style="font-size: 14px; font-weight: bold;">ABC</span>
             </button>
         </div>
 
         <div class="divider"></div>
 
-        <!-- Figuras (Dropup) -->
+        <!-- Geometría e Instrumentos (Dropup) -->
         <div class="tool-group dropup">
-            <button class="tool-btn dropbtn" id="btn-shapes-menu" title="Figuras Geométricas">
-                <i class='bx bx-category'></i>
+            <button class="tool-btn dropbtn" id="btn-geometry-menu" title="Geometría e Instrumentos">
+                <i class='bx bx-ruler'></i>
             </button>
             
             <div class="dropup-content">
+                <button class="tool-btn" id="btn-protractor" title="Añadir Transportador">
+                    <i class='bx bx-compass'></i>
+                </button>
+                <button class="tool-btn" id="btn-ruler" title="Añadir Regla 60cm">
+                    <i class='bx bx-horizontal-center'></i>
+                </button>
+                <div class="divider"></div>
                 <button class="tool-btn" id="btn-square" title="Cuadrado">
                     <i class='bx bx-square'></i>
                 </button>
@@ -190,38 +206,52 @@
 
         <!-- Acciones Globales -->
         <div class="tool-group">
-            <button class="tool-btn" id="btn-protractor" title="Añadir Transportador">
-                <i class='bx bx-compass'></i>
-            </button>
-            <button class="tool-btn" id="btn-ruler" title="Añadir Regla 60cm">
-                <i class='bx bx-ruler'></i>
+            <button class="tool-btn" id="btn-toggle-picker" title="Ruleta de Estudiantes">
+                <i class='bx bx-loader-circle'></i>
             </button>
 
-            <button class="tool-btn" id="btn-toggle-timer" title="Temporizador">
-                <i class='bx bx-timer'></i>
-            </button>
-            <button class="tool-btn" id="btn-toggle-clock" title="Mostrar Reloj">
-                <i class='bx bx-time'></i>
-            </button>
-            <button class="tool-btn" id="btn-toggle-calendar" title="Mostrar Calendario Mensual">
-                <i class='bx bx-calendar-event'></i>
-            </button>
-            <button class="tool-btn" id="btn-toggle-date" title="Mostrar/Ocultar Fecha">
-                <i class='bx bx-calendar'></i>
-            </button>
+            <!-- Widgets de Tiempo (Dropup) -->
+            <div class="tool-group dropup">
+                <button class="tool-btn dropbtn" title="Reloj y Temporizador">
+                    <i class='bx bx-time'></i>
+                </button>
+                <div class="dropup-content">
+                    <button class="tool-btn" id="btn-toggle-timer" title="Temporizador">
+                        <i class='bx bx-timer'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-toggle-clock" title="Mostrar Reloj">
+                        <i class='bx bx-time-five'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-toggle-calendar" title="Calendario Mensual">
+                        <i class='bx bx-calendar-event'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-toggle-date" title="Mostrar/Ocultar Fecha">
+                        <i class='bx bx-calendar'></i>
+                    </button>
+                </div>
+            </div>
+
             <button class="tool-btn permanent-tool" id="btn-undo" title="Deshacer (Ctrl+Z)">
                 <i class='bx bx-undo'></i>
             </button>
             <button class="tool-btn" id="btn-redo" title="Rehacer (Ctrl+Y)">
                 <i class='bx bx-redo'></i>
             </button>
-            <div class="divider"></div>
-            <button class="tool-btn" id="btn-delete" title="Borrar Toda la Pizarra">
-                <i class='bx bx-trash'></i>
-            </button>
-            <button class="tool-btn" id="btn-fullscreen" title="Pantalla Completa">
-                <i class='bx bx-fullscreen'></i>
-            </button>
+            
+            <!-- Más Acciones (Dropup) -->
+            <div class="tool-group dropup">
+                <button class="tool-btn dropbtn" title="Más Opciones">
+                    <i class='bx bx-dots-vertical-rounded'></i>
+                </button>
+                <div class="dropup-content">
+                    <button class="tool-btn" id="btn-delete" title="Borrar Toda la Pizarra">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                    <button class="tool-btn" id="btn-fullscreen" title="Pantalla Completa">
+                        <i class='bx bx-fullscreen'></i>
+                    </button>
+                </div>
+            </div>
             <div class="divider"></div>
             <button class="tool-btn" id="btn-hide-toolbar" title="Ocultar Barra">
                 <i class='bx bx-chevron-down'></i>
@@ -263,6 +293,44 @@
     <div class="settings-trigger" id="btn-open-settings" title="Configuración de Cursos">
         <i class='bx bx-cog'></i>
     </div>
+
+        </div> <!-- End .canvas-panel -->
+
+        <!-- Random Picker Sidebar -->
+        <div class="random-picker-widget" id="random-picker">
+            <div class="picker-header">
+                <i class='bx bx-loader-circle'></i>
+                <span>Participación</span>
+                <button class="close-picker" id="btn-close-picker">&times;</button>
+            </div>
+            
+            <div class="picker-body">
+                <div class="course-selector-mini">
+                    <select id="picker-course-select">
+                        <option value="">Cargando cursos...</option>
+                    </select>
+                </div>
+                
+                <div class="result-display">
+                    <div class="result-box" id="random-result">¿Quién será?</div>
+                </div>
+                
+                <button class="btn-spin" id="btn-spin-start">
+                    <i class='bx bx-refresh'></i> Sortear
+                </button>
+                
+                <div class="history-section">
+                    <div class="history-title">
+                        <span>Ya salieron:</span>
+                        <button class="btn-clear-history" id="btn-reset-history">Reiniciar</button>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End .app-container -->
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settings-modal">
