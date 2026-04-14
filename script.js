@@ -24,6 +24,7 @@ const btnSystemIcons = document.getElementById('btn-system-icons');
 const btnTogglePalette = document.getElementById('btn-toggle-palette');
 const btnGrid = document.getElementById('btn-grid');
 const gridLayer = document.getElementById('grid-layer');
+const btnPlaceValueTable = document.getElementById('btn-place-value');
 
 if (!diceTokenPalette) console.warn("Aviso: El panel de dados no se encontró en el HTML.");
 if (!btnDiceMenu) console.warn("Aviso: El botón del menú de dados no se encontró en el HTML.");
@@ -341,6 +342,19 @@ btnAngle.addEventListener('click', () => {
     document.querySelector('.canvas-container-wrapper').style.cursor = 'crosshair';
 });
 
+// Tabla de Valor Posicional
+if (btnPlaceValueTable) {
+    btnPlaceValueTable.addEventListener('click', () => {
+        const center = canvas.getVpCenter();
+        // Aparece en la parte superior visible de la pizarra actual
+        const vpt = canvas.viewportTransform;
+        const zoom = canvas.getZoom();
+        // Colocamos la tabla centrada horizontalmente y en la parte superior (umbral de 120px desde arriba)
+        const spawnY = (150 - vpt[5]) / zoom; 
+        createPlaceValueTable(center.x, spawnY);
+    });
+}
+
 // Lógica de Toggle para el panel lateral de colores
 btnTogglePalette.addEventListener('click', (e) => {
     const isOpen = sidePalette.classList.contains('open');
@@ -605,6 +619,108 @@ function createToken(left, top, type = 'circle') {
 
     canvas.add(shape);
     canvas.setActiveObject(shape);
+    canvas.requestRenderAll();
+    saveState();
+}
+
+function createPlaceValueTable(left, top) {
+    const cellSize = 40; // Tamaño exacto de la cuadrícula
+    const groupWidth = cellSize * 12;
+    const groupHeight = cellSize * 2;
+    const objects = [];
+
+    const groupSpecs = [
+        { label: 'MILES', color: '#7fb5ff' },    // Blue
+        { label: 'MILLÓN', color: '#82d192' },   // Green
+        { label: 'MIL', color: '#fadd75' },      // Yellow
+        { label: 'UNIDAD', color: '#ef798a' }    // Red
+    ];
+
+    groupSpecs.forEach((spec, gIndex) => {
+        const xOffset = gIndex * cellSize * 3;
+
+        // Celda superior (Título del grupo)
+        const topRect = new fabric.Rect({
+            left: xOffset - (groupWidth / 2) + (cellSize * 1.5),
+            top: -(cellSize),
+            width: cellSize * 3,
+            height: cellSize,
+            fill: spec.color,
+            stroke: '#000000',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'top'
+        });
+        
+        const topText = new fabric.Text(spec.label, {
+            left: xOffset - (groupWidth / 2) + (cellSize * 1.5),
+            top: -(cellSize) + (cellSize / 2),
+            fontSize: 14,
+            fontWeight: 'bold',
+            fontFamily: 'Inter',
+            fill: '#000000',
+            originX: 'center',
+            originY: 'center'
+        });
+
+        objects.push(topRect, topText);
+
+        // Subceldas (C, D, U)
+        const subLabels = ['C', 'D', 'U'];
+        subLabels.forEach((label, sIndex) => {
+            const sx = xOffset + (sIndex * cellSize);
+            
+            const subRect = new fabric.Rect({
+                left: sx - (groupWidth / 2) + (cellSize / 2),
+                top: 0,
+                width: cellSize,
+                height: cellSize,
+                fill: spec.color,
+                stroke: '#000000',
+                strokeWidth: 2,
+                originX: 'center',
+                originY: 'top'
+            });
+
+            const subText = new fabric.Text(label, {
+                left: sx - (groupWidth / 2) + (cellSize / 2),
+                top: (cellSize / 2),
+                fontSize: 18,
+                fontWeight: 'bold',
+                fontFamily: 'Inter',
+                fill: '#000000',
+                originX: 'center',
+                originY: 'center'
+            });
+
+            objects.push(subRect, subText);
+        });
+    });
+
+    const group = new fabric.Group(objects, {
+        left: Math.round(left / cellSize) * cellSize,
+        top: Math.round(top / cellSize) * cellSize,
+        originX: 'center',
+        originY: 'top',
+        selectable: true,
+        hasControls: true,
+        lockRotation: true, // No queremos que rote
+        lockScalingX: true, // No queremos que se deforme
+        lockScalingY: true,
+        name: 'place-value-table',
+        role: 'math'
+    });
+
+    // Magnetismo (Snapping) al mover
+    group.on('moving', function() {
+        this.set({
+            left: Math.round(this.left / cellSize) * cellSize,
+            top: Math.round(this.top / cellSize) * cellSize
+        });
+    });
+
+    canvas.add(group);
+    canvas.setActiveObject(group);
     canvas.requestRenderAll();
     saveState();
 }
