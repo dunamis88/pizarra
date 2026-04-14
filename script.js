@@ -22,6 +22,8 @@ const btnRulesMenu = document.getElementById('btn-rules-menu');
 const btnDiceMenu = document.getElementById('btn-dice-menu');
 const btnSystemIcons = document.getElementById('btn-system-icons');
 const btnTogglePalette = document.getElementById('btn-toggle-palette');
+const btnGrid = document.getElementById('btn-grid');
+const gridLayer = document.getElementById('grid-layer');
 
 if (!diceTokenPalette) console.warn("Aviso: El panel de dados no se encontró en el HTML.");
 if (!btnDiceMenu) console.warn("Aviso: El botón del menú de dados no se encontró en el HTML.");
@@ -3271,6 +3273,41 @@ function createDice(left, top) {
     canvas.requestRenderAll();
     saveState();
 }
+
+// --- Lógica de Cuadrícula Infinita y Zoom ---
+window.updateGridBackground = function() {
+    if (!gridLayer) return;
+    const vpt = canvas.viewportTransform;
+    const zoom = canvas.getZoom();
+    gridLayer.style.transform = `translate(${vpt[4]}px, ${vpt[5]}px) scale(${zoom})`;
+};
+
+if (btnGrid) {
+    btnGrid.addEventListener('click', () => {
+        const wrapper = document.querySelector('.canvas-panel');
+        const isShowing = wrapper.classList.toggle('show-grid');
+        btnGrid.classList.toggle('active', isShowing);
+        if (isShowing) window.updateGridBackground();
+    });
+}
+
+canvas.on('mouse:wheel', function(opt) {
+    const delta = opt.e.deltaY;
+    let zoom = canvas.getZoom();
+    zoom *= 0.999 ** delta;
+    if (zoom > 20) zoom = 20;
+    if (zoom < 0.05) zoom = 0.05;
+    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+    opt.e.preventDefault();
+    opt.e.stopPropagation();
+    window.updateGridBackground();
+});
+
+canvas.on('mouse:move', () => {
+    if (canvas.isPanning || canvas.isPanningView) {
+        window.updateGridBackground();
+    }
+});
 
 // Iniciar
 initToolbarCustomization();
