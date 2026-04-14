@@ -628,12 +628,13 @@ function createPlaceValueTable(left, top) {
     const groupWidth = cellSize * 12;
     const groupHeight = cellSize * 2;
     const objects = [];
+    const strokeColor = '#2d3748'; // Gris oscuro de la paleta oficial
 
     const groupSpecs = [
-        { label: 'MILES', color: '#7fb5ff' },    // Blue
-        { label: 'MILLÓN', color: '#82d192' },   // Green
-        { label: 'MIL', color: '#fadd75' },      // Yellow
-        { label: 'UNIDAD', color: '#ef798a' }    // Red
+        { label: 'MILES', color: '#7fb5ff' },    // Celeste Suave
+        { label: 'MILLÓN', color: '#82d192' },   // Verde Suave
+        { label: 'MIL', color: '#fadd75' },      // Amarillo Suave
+        { label: 'UNIDAD', color: '#ef798a' }    // Rojo Suave / Coral
     ];
 
     groupSpecs.forEach((spec, gIndex) => {
@@ -646,7 +647,7 @@ function createPlaceValueTable(left, top) {
             width: cellSize * 3,
             height: cellSize,
             fill: spec.color,
-            stroke: '#000000',
+            stroke: strokeColor,
             strokeWidth: 2,
             originX: 'center',
             originY: 'top'
@@ -658,7 +659,7 @@ function createPlaceValueTable(left, top) {
             fontSize: 14,
             fontWeight: 'bold',
             fontFamily: 'Inter',
-            fill: '#000000',
+            fill: strokeColor,
             originX: 'center',
             originY: 'center'
         });
@@ -676,7 +677,7 @@ function createPlaceValueTable(left, top) {
                 width: cellSize,
                 height: cellSize,
                 fill: spec.color,
-                stroke: '#000000',
+                stroke: strokeColor,
                 strokeWidth: 2,
                 originX: 'center',
                 originY: 'top'
@@ -688,7 +689,7 @@ function createPlaceValueTable(left, top) {
                 fontSize: 18,
                 fontWeight: 'bold',
                 fontFamily: 'Inter',
-                fill: '#000000',
+                fill: strokeColor,
                 originX: 'center',
                 originY: 'center'
             });
@@ -704,11 +705,12 @@ function createPlaceValueTable(left, top) {
         originY: 'top',
         selectable: true,
         hasControls: true,
-        lockRotation: true, // No queremos que rote
-        lockScalingX: true, // No queremos que se deforme
+        lockRotation: true,
+        lockScalingX: true,
         lockScalingY: true,
         name: 'place-value-table',
-        role: 'math'
+        role: 'math',
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 4, offsetY: 4 })
     });
 
     // Magnetismo (Snapping) al mover
