@@ -95,7 +95,7 @@ const btnCartesian = document.getElementById('btn-cartesian');
 
 let swatches = document.querySelectorAll('.swatch');
 let currentColor = '#2d3748';
-let strokeWidthSlider = document.getElementById('stroke-width');
+let currentStrokeWidth = 4;
 let currentPolygonSides = 5;
 const sidesValueDisplay = document.getElementById('sides-value');
 const btnSidesUp = document.getElementById('btn-sides-up');
@@ -187,7 +187,7 @@ const toolBtns = document.querySelectorAll('.tool-btn:not(#btn-delete)'); // Kee
 
 // Initialize Drawing Brush
 canvas.freeDrawingBrush.color = currentColor;
-canvas.freeDrawingBrush.width = parseInt(strokeWidthSlider.value, 10);
+canvas.freeDrawingBrush.width = currentStrokeWidth;
 // OPTIMIZACIÓN: Simplifica los puntos del trazo libre, mejorando drásticamente el rendimiento en touch
 if (canvas.freeDrawingBrush) {
     canvas.freeDrawingBrush.decimate = 4;
@@ -925,16 +925,15 @@ function bindPaletteEvents() {
     });
 
     function updateBrush() {
-        const val = parseInt(strokeWidthSlider.value);
-        canvas.freeDrawingBrush.width = val;
-        if (strokeWidthLabel) strokeWidthLabel.textContent = val;
+        canvas.freeDrawingBrush.width = currentStrokeWidth;
+        if (strokeWidthLabel) strokeWidthLabel.textContent = currentStrokeWidth;
         
         // También actualizar objetos seleccionados si los hay
         const activeObjects = canvas.getActiveObjects();
         if (activeObjects.length) {
             activeObjects.forEach(obj => {
                 if (obj.strokeWidth !== undefined) {
-                    obj.set({ strokeWidth: val });
+                    obj.set({ strokeWidth: currentStrokeWidth });
                 }
             });
             canvas.requestRenderAll();
@@ -942,14 +941,10 @@ function bindPaletteEvents() {
         }
     }
 
-    strokeWidthSlider.addEventListener('input', updateBrush);
-
     if (btnStrokeUp) {
         btnStrokeUp.addEventListener('click', () => {
-            let val = parseInt(strokeWidthSlider.value);
-            if (val < 50) {
-                val++;
-                strokeWidthSlider.value = val;
+            if (currentStrokeWidth < 50) {
+                currentStrokeWidth++;
                 updateBrush();
             }
         });
@@ -957,10 +952,8 @@ function bindPaletteEvents() {
 
     if (btnStrokeDown) {
         btnStrokeDown.addEventListener('click', () => {
-            let val = parseInt(strokeWidthSlider.value);
-            if (val > 1) {
-                val--;
-                strokeWidthSlider.value = val;
+            if (currentStrokeWidth > 1) {
+                currentStrokeWidth--;
                 updateBrush();
             }
         });
