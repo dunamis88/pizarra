@@ -103,6 +103,7 @@ const btnSidesDown = document.getElementById('btn-sides-down');
 const btnStrokeUp = document.getElementById('btn-stroke-up');
 const btnStrokeDown = document.getElementById('btn-stroke-down');
 const strokeWidthLabel = document.getElementById('stroke-width-label');
+let isGridActive = false;
 
 // --- Sistema Undo/Redo ---
 let undoStack = [];
@@ -1259,7 +1260,7 @@ canvas.on('mouse:down', (e) => {
         
         activeLine = new fabric.Line([snappedX, snappedY, snappedX, snappedY], {
             stroke: currentColor,
-            strokeWidth: parseInt(strokeWidthSlider.value, 10),
+            strokeWidth: currentStrokeWidth,
             selectable: false,
             evented: false,
             strokeLineCap: 'round',
@@ -1286,7 +1287,7 @@ canvas.on('mouse:down', (e) => {
             canvas.add(c1);
             
             const line1 = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-                stroke: currentColor, strokeWidth: parseInt(strokeWidthSlider.value, 10), selectable: false, evented: false
+                stroke: currentColor, strokeWidth: currentStrokeWidth, selectable: false, evented: false
             });
             angleTempLines.push(line1);
             canvas.add(line1);
@@ -1305,7 +1306,7 @@ canvas.on('mouse:down', (e) => {
             angleTempLines[0].set({ x2: pointer.x, y2: pointer.y });
             
             const line2 = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-                stroke: currentColor, strokeWidth: parseInt(strokeWidthSlider.value, 10), selectable: false, evented: false
+                stroke: currentColor, strokeWidth: currentStrokeWidth, selectable: false, evented: false
             });
             angleTempLines.push(line2);
             canvas.add(line2);
@@ -1335,7 +1336,7 @@ canvas.on('mouse:down', (e) => {
             createInteractiveAngle(
                 angleTempPts, 
                 currentColor, 
-                parseInt(strokeWidthSlider.value, 10), 
+                currentStrokeWidth, 
                 activeAngleId
             );
             
@@ -1409,7 +1410,7 @@ canvas.on('mouse:down', (e) => {
         
         // Empezar nueva preview line
         activeLine = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-            strokeWidth: parseInt(strokeWidthSlider.value, 10),
+            strokeWidth: currentStrokeWidth,
             fill: currentColor,
             stroke: currentColor,
             selectable: false,
@@ -1492,14 +1493,14 @@ canvas.on('mouse:up', () => {
                 lineTempPts[0], 
                 lineTempPts[1], 
                 currentColor, 
-                parseInt(strokeWidthSlider.value, 10)
+                currentStrokeWidth
             );
         } else {
             createInteractiveLine(
                 lineTempPts[0], 
                 lineTempPts[1], 
                 currentColor, 
-                parseInt(strokeWidthSlider.value, 10), 
+                currentStrokeWidth, 
                 activeLineId
             );
         }
@@ -1635,7 +1636,7 @@ function getDefaultShapeStyle() {
     return {
         fill: 'transparent',
         stroke: currentColor,
-        strokeWidth: parseInt(strokeWidthSlider.value, 10),
+        strokeWidth: currentStrokeWidth,
         strokeUniform: true
     };
 }
@@ -3396,29 +3397,15 @@ window.updateGridBackground = function() {
 if (btnGrid) {
     btnGrid.addEventListener('click', () => {
         const wrapper = document.querySelector('.canvas-panel');
-        const isShowing = wrapper.classList.toggle('show-grid');
-        btnGrid.classList.toggle('active', isShowing);
-        if (isShowing) window.updateGridBackground();
+        isGridActive = wrapper.classList.toggle('show-grid');
+        btnGrid.classList.toggle('active', isGridActive);
+        if (isGridActive) {
+            if (window.updateGridBackground) window.updateGridBackground();
+        }
     });
 }
 
-canvas.on('mouse:wheel', function(opt) {
-    const delta = opt.e.deltaY;
-    let zoom = canvas.getZoom();
-    zoom *= 0.999 ** delta;
-    if (zoom > 20) zoom = 20;
-    if (zoom < 0.05) zoom = 0.05;
-    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-    opt.e.preventDefault();
-    opt.e.stopPropagation();
-    window.updateGridBackground();
-});
-
-canvas.on('mouse:move', () => {
-    if (canvas.isPanning || canvas.isPanningView) {
-        window.updateGridBackground();
-    }
-});
+// La actualización del fondo ya se maneja en los listeners principales arriba
 
 // Iniciar
 initToolbarCustomization();
