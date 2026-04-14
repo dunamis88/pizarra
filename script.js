@@ -104,6 +104,13 @@ const btnStrokeUp = document.getElementById('btn-stroke-up');
 const btnStrokeDown = document.getElementById('btn-stroke-down');
 const strokeWidthLabel = document.getElementById('stroke-width-label');
 
+
+function snapToGrid(val) {
+    if (!isGridActive) return val;
+    const grid = 40;
+    return Math.round(val / grid) * grid;
+}
+
 // --- Sistema Undo/Redo ---
 let undoStack = [];
 let redoStack = [];
@@ -3298,45 +3305,87 @@ if (btnPlaceValueTable) {
 }
 
 function createPlaceValueTable(left, top) {
-    const colWidth = 140;
-    const rowHeight = 60;
-    const cols = [
-        { title: 'Centenas', color: '#6bc0cc' },
-        { title: 'Decenas', color: '#ef798a' },
-        { title: 'Unidades', color: '#82d192' }
+    const subColWidth = 50; 
+    const rowHeight = 40;   
+    const superCols = [
+        { title: 'MILES', color: '#a0c4ff' },
+        { title: 'MILLON', color: '#b7e4c7' },
+        { title: 'MIL', color: '#fadd75' },
+        { title: 'UNIDAD', color: '#ffadad' }
     ];
+    const subCols = ['C', 'D', 'U'];
+    
     let objs = [];
-    const totalWidth = colWidth * cols.length;
+    const superColWidth = subColWidth * 3;
+    const totalWidth = superColWidth * superCols.length; 
+    const totalHeight = rowHeight * 4; 
+
+    // Base de toda la clase
     objs.push(new fabric.Rect({
-        left: 0, top: 0, width: totalWidth, height: rowHeight * 4,
-        fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 2, rx: 8, ry: 8, selectable: false
+        left: 0, top: 0, width: totalWidth, height: totalHeight,
+        fill: '#ffffff', stroke: '#000000', strokeWidth: 2, selectable: false
     }));
-    cols.forEach((col, i) => {
+    
+    // Header colors y titulos mayores
+    superCols.forEach((col, i) => {
+        // Fondo 
         objs.push(new fabric.Rect({
-            left: i * colWidth, top: 0, width: colWidth, height: rowHeight,
-            fill: col.color, stroke: '#cbd5e1', strokeWidth: 1,
+            left: i * superColWidth, top: 0, width: superColWidth, height: rowHeight * 2,
+            fill: col.color, stroke: '#000000', strokeWidth: 1,
             selectable: false
         }));
+        
+        // Titulo MAYOR
         objs.push(new fabric.Text(col.title, {
-            left: (i * colWidth) + (colWidth / 2), top: rowHeight / 2,
-            fontSize: 20, fontWeight: 'bold', fill: '#ffffff',
+            left: (i * superColWidth) + (superColWidth / 2), top: rowHeight / 2,
+            fontSize: 20, fontWeight: 'normal', fill: '#000000', fontFamily: 'Arial',
             originX: 'center', originY: 'center', selectable: false
         }));
+
+        // Titulos menores (C D U)
+        subCols.forEach((sub, j) => {
+            const subX = (i * superColWidth) + (j * subColWidth);
+            
+            objs.push(new fabric.Text(sub, {
+                left: subX + (subColWidth / 2), top: rowHeight + (rowHeight / 2),
+                fontSize: 20, fontWeight: 'normal', fill: '#000000', fontFamily: 'Arial',
+                originX: 'center', originY: 'center', selectable: false
+            }));
+
+            // Linea separadora vertical de C, D, U
+            if (j > 0) {
+                objs.push(new fabric.Line([subX, rowHeight, subX, totalHeight], {
+                    stroke: '#000000', strokeWidth: 1, selectable: false
+                }));
+            }
+        });
+
+        // Linea separadora gruesa entre grandes grupos
         if (i > 0) {
-            objs.push(new fabric.Line([i * colWidth, 0, i * colWidth, rowHeight * 4], {
-                stroke: '#cbd5e1', strokeWidth: 2, selectable: false
+            objs.push(new fabric.Line([i * superColWidth, 0, i * superColWidth, totalHeight], {
+                stroke: '#000000', strokeWidth: 2, selectable: false
             }));
         }
     });
-    for (let r = 1; r < 4; r++) {
+
+    // Lineas horizontales
+    objs.push(new fabric.Line([0, rowHeight, totalWidth, rowHeight], {
+        stroke: '#000000', strokeWidth: 1, selectable: false
+    }));
+    objs.push(new fabric.Line([0, rowHeight * 2, totalWidth, rowHeight * 2], {
+        stroke: '#000000', strokeWidth: 2, selectable: false
+    }));
+    for (let r = 3; r <= 4; r++) {
         objs.push(new fabric.Line([0, r * rowHeight, totalWidth, r * rowHeight], {
-            stroke: '#e2e8f0', strokeWidth: 1, selectable: false
+            stroke: '#000000', strokeWidth: 1, selectable: false
         }));
     }
+
     const group = new fabric.Group(objs, {
         left: left, top: top, originX: 'center', originY: 'center',
         hasControls: true, hasBorders: true, lockScalingFlip: true, name: 'placeValueTable'
     });
+    
     canvas.add(group);
     canvas.setActiveObject(group);
     canvas.requestRenderAll();
@@ -3350,15 +3399,6 @@ window.updateGridBackground = function() {
     const zoom = canvas.getZoom();
     gridLayer.style.transform = `translate(${vpt[4]}px, ${vpt[5]}px) scale(${zoom})`;
 };
-
-if (btnGrid) {
-    btnGrid.addEventListener('click', () => {
-        const wrapper = document.querySelector('.canvas-panel');
-        const isShowing = wrapper.classList.toggle('show-grid');
-        btnGrid.classList.toggle('active', isShowing);
-        if (isShowing) window.updateGridBackground();
-    });
-}
 
 canvas.on('mouse:wheel', function(opt) {
     const delta = opt.e.deltaY;
