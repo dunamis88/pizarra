@@ -3305,7 +3305,7 @@ if (btnPlaceValueTable) {
 }
 
 function createPlaceValueTable(left, top) {
-    const subColWidth = 50; 
+    const subColWidth = 40; 
     const rowHeight = 40;   
     const superCols = [
         { title: 'MILES', color: '#a0c4ff' },
@@ -3374,7 +3374,8 @@ function createPlaceValueTable(left, top) {
     }));
 
     const group = new fabric.Group(objs, {
-        left: left, top: top, originX: 'center', originY: 'center',
+        left: snapToGrid(left - (totalWidth/2)), top: snapToGrid(top - (totalHeight/2)), 
+        originX: 'left', originY: 'top',
         hasControls: true, hasBorders: true, lockScalingFlip: true, name: 'placeValueTable'
     });
     
