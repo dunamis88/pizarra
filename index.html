@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pizarra Interactiva</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <!-- BoxIcons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <!-- Fabric.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+    <!-- SortableJS (Para reordenar botones) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="canvas-panel">
+            <div class="grid-layer" id="grid-layer"></div>
+            <div class="canvas-container-wrapper">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+
+    <!-- Top Left Date Widget -->
+    <div class="top-widget date-widget" id="date-widget" style="display: none;">
+        <i class='bx bx-calendar'></i>
+        <span id="current-date">Cargando fecha...</span>
+    </div>
+
+    <!-- Monthly Calendar Widget (Centered/Floating) -->
+    <div class="top-widget calendar-widget" id="calendar-widget" style="display: none;">
+        <div class="calendar-header">
+            <button id="prev-month"><i class='bx bx-chevron-left'></i></button>
+            <h3 id="calendar-month-year">Mes Año</h3>
+            <button id="next-month"><i class='bx bx-chevron-right'></i></button>
+        </div>
+        <div class="calendar-days-header">
+            <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
+        </div>
+        <div class="calendar-days-grid" id="calendar-days">
+            <!-- Días generados por JS -->
+        </div>
+    </div>
+
+    <!-- Clock Widget -->
+    <div class="top-widget clock-widget" id="clock-widget" style="display: none;">
+        <div id="digital-clock" class="digital-display">00:00:00</div>
+    </div>
+
+    <!-- Timer Widget -->
+    <div class="top-widget timer-widget" id="timer-widget" style="display: none;">
+        <div class="widget-header">
+            <span>Temporizador</span>
+            <div class="header-actions">
+                <button id="btn-reset-timer" title="Reiniciar"><i class='bx bx-reset'></i></button>
+            </div>
+        </div>
+        
+        <div class="timer-main-controls">
+            <div class="time-adjuster">
+                <button class="adj-btn small" onclick="adjustTimer('min', 1)"><i class='bx bx-chevron-up'></i></button>
+                <span id="display-min">05</span>
+                <button class="adj-btn small" onclick="adjustTimer('min', -1)"><i class='bx bx-chevron-down'></i></button>
+            </div>
+            <span class="main-sep">:</span>
+            <div class="time-adjuster">
+                <button class="adj-btn small" onclick="adjustTimer('sec', 1)"><i class='bx bx-chevron-up'></i></button>
+                <span id="display-sec">00</span>
+                <button class="adj-btn small" onclick="adjustTimer('sec', -1)"><i class='bx bx-chevron-down'></i></button>
+            </div>
+        </div>
+        
+        <div class="timer-actions">
+            <button id="btn-start-timer" class="btn-primary-action">Iniciar</button>
+        </div>
+    </div>
+
+    <!-- Discrete Bottom Toolbar -->
+    <div class="toolbar">
+        <!-- Tools -->
+        <button class="tool-btn permanent-tool" id="btn-select" title="Seleccionar y Mover">
+            <i class='bx bx-pointer'></i>
+        </button>
+        <button class="tool-btn permanent-tool" id="btn-move" title="Mover / Arrastrar Visión (Mano)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v11"/>
+                <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+            </svg>
+        </button>
+        <button class="tool-btn permanent-tool" id="btn-draw" title="Lápiz / Dibujar">
+            <i class='bx bx-pencil'></i>
+        </button>
+        <button class="tool-btn" id="btn-eraser" title="Goma de Borrar">
+            <i class='bx bxs-eraser'></i>
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Botón Geometría e Instrumentos -->
+        <button class="tool-btn" id="btn-geometry-menu" title="Figuras Geométricas">
+            <i class='bx bx-shape-square' ></i>
+        </button>
+        <button class="tool-btn" id="btn-rules-menu" title="Instrumentos y Reglas">
+            <i class='bx bx-ruler' ></i>
+        </button>
+        <button class="tool-btn" id="btn-angle" title="Dibujar Ángulo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 20H4V4"/>
+                <path d="M12 20a8 8 0 0 0-8-8"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-system-icons" title="Añadir Icono o Pegatina">
+            <i class='bx bx-sticker'></i>
+        </button>
+        <button class="tool-btn" id="btn-cartesian" title="Plano Cartesiano (1er Cuadrante)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 3v16h16"/>
+                <path d="M5 3l-2 2M5 3l2 2"/>
+                <path d="M21 19l-2-2M21 19l-2 2"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-dice-menu" title="Herramientas de Azar y Conteo (Dados y Fichas)">
+            <i class='bx bx-dice-5'></i>
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Botón para abrir/cerrar paleta lateral -->
+        <button class="tool-btn permanent-tool" id="btn-toggle-palette" title="Estilos y Color">
+            <i class='bx bx-palette'></i>
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Acciones Globales -->
+        <button class="tool-btn" id="btn-toggle-picker" title="Ruleta de Estudiantes">
+            <i class='bx bx-loader-circle'></i>
+        </button>
+
+        <!-- Widgets de Tiempo (Dropup) -->
+        <div class="dropup">
+            <button class="tool-btn dropbtn" title="Reloj y Temporizador">
+                <i class='bx bx-time'></i>
+            </button>
+            <div class="dropup-content">
+                <button class="tool-btn" id="btn-toggle-timer" title="Temporizador">
+                    <i class='bx bx-timer'></i>
+                </button>
+                <button class="tool-btn" id="btn-toggle-clock" title="Mostrar Reloj">
+                    <i class='bx bx-time-five'></i>
+                </button>
+                <button class="tool-btn" id="btn-toggle-calendar" title="Calendario Mensual">
+                    <i class='bx bx-calendar-event'></i>
+                </button>
+                <button class="tool-btn" id="btn-toggle-date" title="Mostrar/Ocultar Fecha">
+                    <i class='bx bx-calendar'></i>
+                </button>
+            </div>
+        </div>
+
+        <button class="tool-btn permanent-tool" id="btn-undo" title="Deshacer (Ctrl+Z)">
+            <i class='bx bx-undo'></i>
+        </button>
+        <button class="tool-btn" id="btn-redo" title="Rehacer (Ctrl+Y)">
+            <i class='bx bx-redo'></i>
+        </button>
+        
+        <button class="tool-btn" id="btn-delete" title="Borrar Toda la Pizarra">
+            <i class='bx bx-trash'></i>
+        </button>
+        <button class="tool-btn" id="btn-fullscreen" title="Pantalla Completa">
+            <i class='bx bx-fullscreen'></i>
+        </button>
+        <div class="dropup">
+            <button class="tool-btn dropbtn permanent-tool" id="btn-more-tools" title="Más Herramientas">
+                <i class='bx bx-dots-vertical-rounded'></i>
+            </button>
+            <div class="dropup-content" id="more-tools-content">
+                <!-- Aquí se pueden mover herramientas que no se usen tanto -->
+            </div>
+        </div>
+        <div class="divider"></div>
+        <button class="tool-btn" id="btn-hide-toolbar" title="Ocultar Barra">
+            <i class='bx bx-chevron-down'></i>
+        </button>
+        <button class="tool-btn permanent-tool" id="btn-show-toolbar-inline" title="Mostrar Barra completa">
+            <i class='bx bx-chevron-up'></i>
+        </button>
+    </div>
+
+    <!-- Side Panel Left (Geometry) -->
+    <div class="side-panel left-panel" id="geometry-palette">
+        <div class="side-panel-content">
+            <div class="tools-grid vertical">
+                <button class="tool-btn" id="btn-line" title="Línea Recta">
+                    <i class='bx bx-minus'></i>
+                </button>
+                <button class="tool-btn" id="btn-arrow" title="Flecha">
+                    <i class='bx bx-right-arrow-alt'></i>
+                </button>
+                <button class="tool-btn" id="btn-square" title="Cuadrado">
+                    <i class='bx bx-square'></i>
+                </button>
+                <button class="tool-btn" id="btn-rect" title="Rectángulo">
+                    <i class='bx bx-rectangle'></i>
+                </button>
+                <button class="tool-btn" id="btn-circle" title="Círculo">
+                    <i class='bx bx-circle'></i>
+                </button>
+                <button class="tool-btn" id="btn-triangle" title="Triángulo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3L2 20h20L12 3z"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="btn-custom-polygon" title="Trazar Figura Libre">
+                    <i class='bx bx-shape-triangle'></i>
+                </button>
+            </div>
+            <div class="polygon-control-wrapper">
+                <button class="tool-btn" id="btn-polygon" title="Añadir Polígono">
+                    <i class='bx bx-polygon'></i>
+                </button>
+                <div class="sides-selector">
+                    <button class="sides-btn" id="btn-sides-down"><i class='bx bx-minus'></i></button>
+                    <span id="sides-value">5</span>
+                    <button class="sides-btn" id="btn-sides-up"><i class='bx bx-plus'></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel Left (Dice & Tokens) -->
+    <div class="side-panel left-panel" id="dice-token-palette">
+        <div class="side-panel-content">
+            <div class="tools-grid vertical">
+                <button class="tool-btn" id="btn-add-dice" title="Lanzar Dado Interactivo">
+                    <i class='bx bx-dice-6'></i>
+                </button>
+                <button class="tool-btn" id="btn-add-token" title="Añadir Ficha Circular">
+                    <i class='bx bxs-circle'></i>
+                </button>
+                <button class="tool-btn" id="btn-add-square-token" title="Añadir Ficha Cuadrada">
+                    <i class='bx bxs-square'></i>
+                </button>
+                <button class="tool-btn" id="btn-add-rect-token" title="Añadir Ficha Rectangular">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="btn-add-coin" title="Lanzar Moneda (Cara/Sello)">
+                    <i class='bx bx-coin-stack'></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel Left (Rules) -->
+    <div class="side-panel left-panel" id="rules-palette">
+        <div class="side-panel-content">
+            <div class="tools-grid vertical">
+                <button class="tool-btn" id="btn-protractor" title="Añadir Transportador">
+                    <i class='bx bx-compass'></i>
+                </button>
+                <button class="tool-btn" id="btn-ruler" title="Añadir Regla 60cm">
+                    <i class='bx bx-ruler'></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel Left (Stickers) -->
+    <div class="side-panel left-panel" id="sticker-palette">
+        <div class="side-panel-content">
+            <div id="sticker-grid" class="tools-grid vertical">
+                <!-- Se pobla dinámicamente en script.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel (Vertical Palette) -->
+    <div class="side-panel" id="side-palette">
+        <div class="side-panel-content">
+            <div class="color-swatches vertical">
+                <button class="swatch active" data-color="#2d3748" style="background-color: #2d3748;" title="Gris Oscuro"></button>
+                <button class="swatch" data-color="#ef798a" style="background-color: #ef798a;" title="Rojo Suave / Coral"></button>
+                <button class="swatch" data-color="#f7a976" style="background-color: #f7a976;" title="Naranja Suave"></button>
+                <button class="swatch" data-color="#fadd75" style="background-color: #fadd75;" title="Amarillo Suave"></button>
+                <button class="swatch" data-color="#82d192" style="background-color: #82d192;" title="Verde Suave"></button>
+                <button class="swatch" data-color="#6bc0cc" style="background-color: #6bc0cc;" title="Turquesa"></button>
+                <button class="swatch" data-color="#7fb5ff" style="background-color: #7fb5ff;" title="Celeste Suave"></button>
+                <button class="swatch" data-color="#9a8ced" style="background-color: #9a8ced;" title="Morado Suave"></button>
+                <button class="swatch" data-color="#f28ab0" style="background-color: #f28ab0;" title="Rosa Suave"></button>
+            </div>
+            
+            <div class="sidebar-divider"></div>
+            
+            <div class="range-container vertical">
+                <button class="stroke-btn" id="btn-stroke-up" title="Aumentar grosor">
+                    <i class='bx bx-plus'></i>
+                </button>
+                <div class="range-slider-wrapper">
+                    <input type="range" id="stroke-width" min="1" max="50" value="4">
+                    <span id="stroke-width-label" class="value-label">4</span>
+                </div>
+                <button class="stroke-btn" id="btn-stroke-down" title="Disminuir grosor">
+                    <i class='bx bx-minus'></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Right Settings Button -->
+    <div class="settings-trigger" id="btn-open-settings" title="Configuración de Cursos">
+        <i class='bx bx-cog'></i>
+    </div>
+
+        </div> <!-- End .canvas-panel -->
+
+        <!-- Random Picker Sidebar -->
+        <div class="random-picker-widget" id="random-picker">
+            <div class="picker-header">
+                <i class='bx bx-loader-circle'></i>
+                <span>Participación</span>
+                <button class="close-picker" id="btn-close-picker">&times;</button>
+            </div>
+            
+            <div class="picker-body">
+                <div class="course-selector-mini">
+                    <select id="picker-course-select">
+                        <option value="">Cargando cursos...</option>
+                    </select>
+                </div>
+                
+                <div class="result-display">
+                    <div class="result-box" id="random-result">¿Quién será?</div>
+                </div>
+                
+                <button class="btn-spin" id="btn-spin-start">
+                    <i class='bx bx-refresh'></i> Sortear
+                </button>
+                
+                <div class="history-section">
+                    <div class="history-title">
+                        <span>Ya salieron:</span>
+                        <button class="btn-clear-history" id="btn-reset-history">Reiniciar</button>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End .app-container -->
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="settings-card">
+            <div class="modal-header">
+                <div class="header-title">
+                    <i class='bx bx-cog'></i>
+                    <h3>Configuración de Aula</h3>
+                </div>
+                <button class="close-modal" id="btn-close-settings">&times;</button>
+            </div>
+            
+            <div class="settings-body">
+                <div class="settings-sidebar">
+                    <button class="nav-btn active" data-target="course-section">
+                        <i class='bx bx-book-bookmark'></i>
+                        <span>Cursos</span>
+                    </button>
+                    <button class="nav-btn" data-target="student-section">
+                        <i class='bx bx-group'></i>
+                        <span>Estudiantes</span>
+                    </button>
+                    <button class="nav-btn" data-target="pizarra-section">
+                        <i class='bx bx-chalkboard'></i>
+                        <span>Pizarra</span>
+                    </button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- Courses Section -->
+                    <div class="config-section active" id="course-section">
+                        <div class="section-header">
+                            <h4>Gestionar Cursos</h4>
+                            <p>Añade los grados o secciones con los que trabajas.</p>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="course-input" placeholder="Nombre del curso (ej: 5to Básico A)">
+                            <button class="btn-add" id="add-course-btn">Añadir</button>
+                        </div>
+                        <div class="list-container" id="courses-list">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+
+                    <!-- Students Section -->
+                    <div class="config-section" id="student-section">
+                        <div class="section-header">
+                            <h4>Gestionar Estudiantes</h4>
+                            <p>Selecciona un curso y añade a tus alumnos.</p>
+                        </div>
+                        <div class="select-wrapper">
+                            <select id="course-selector-for-students">
+                                <option value="">Selecciona un curso primero...</option>
+                            </select>
+                        </div>
+                        <div class="input-group bulk-input">
+                            <textarea id="student-input" placeholder="Pega aquí la lista de alumnos (un nombre por línea)"></textarea>
+                            <button class="btn-add" id="add-student-btn">Añadir Lista</button>
+                        </div>
+                        <div class="list-container" id="students-list">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+
+                    <!-- Pizarra Preferences Section -->
+                    <div class="config-section" id="pizarra-section">
+                        <div class="section-header">
+                            <h4>Preferencias de Pizarra</h4>
+                            <p>Configura el comportamiento visual por defecto.</p>
+                        </div>
+                        <div class="preference-item">
+                            <div class="pref-info">
+                                <span class="pref-title">Cuadrícula de fondo</span>
+                                <span class="pref-desc">Muestra una cuadrícula guía para dibujos técnicos.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="pref-grid-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    
+    <!-- Floating group icon panel (simple dropdown) -->
+    <div id="group-icon-panel" style="
+        display: none;
+        position: fixed;
+        background: var(--bg-toolbar, #fff);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        z-index: 99999;
+        width: 240px;
+    ">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:13px; font-weight:600; color:var(--text,#333);">Ícono del Grupo</span>
+            <button onclick="document.getElementById('group-icon-panel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;line-height:1;">&#x2715;</button>
+        </div>
+        <div id="group-icon-inner" style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">
+        </div>
+    </div>
+
+    <!-- App Script -->
+    <script src="script.js"></script>
+</body>
+</html>
