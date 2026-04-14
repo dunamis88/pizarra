@@ -103,7 +103,6 @@ const btnSidesDown = document.getElementById('btn-sides-down');
 const btnStrokeUp = document.getElementById('btn-stroke-up');
 const btnStrokeDown = document.getElementById('btn-stroke-down');
 const strokeWidthLabel = document.getElementById('stroke-width-label');
-let isGridActive = false;
 
 // --- Sistema Undo/Redo ---
 let undoStack = [];
@@ -343,19 +342,6 @@ btnAngle.addEventListener('click', () => {
     document.querySelector('.canvas-container-wrapper').style.cursor = 'crosshair';
 });
 
-// Tabla de Valor Posicional
-if (btnPlaceValueTable) {
-    btnPlaceValueTable.addEventListener('click', () => {
-        const center = canvas.getVpCenter();
-        // Aparece en la parte superior visible de la pizarra actual
-        const vpt = canvas.viewportTransform;
-        const zoom = canvas.getZoom();
-        // Colocamos la tabla centrada horizontalmente y en la parte superior (umbral de 120px desde arriba)
-        const spawnY = (150 - vpt[5]) / zoom; 
-        createPlaceValueTable(center.x, spawnY);
-    });
-}
-
 // Lógica de Toggle para el panel lateral de colores
 btnTogglePalette.addEventListener('click', (e) => {
     const isOpen = sidePalette.classList.contains('open');
@@ -390,6 +376,18 @@ if(btnGeometryMenu && geometryPalette) {
         if (!isOpen) {
             geometryPalette.classList.add('open');
             btnGeometryMenu.classList.add('active');
+        }
+        e.stopPropagation();
+    });
+}
+
+if(btnSystemIcons && stickerPalette) {
+    btnSystemIcons.addEventListener('click', (e) => {
+        const isOpen = stickerPalette.classList.contains('open');
+        closeAllPanels();
+        if (!isOpen) {
+            stickerPalette.classList.add('open');
+            btnSystemIcons.classList.add('active');
         }
         e.stopPropagation();
     });
@@ -624,110 +622,6 @@ function createToken(left, top, type = 'circle') {
     saveState();
 }
 
-function createPlaceValueTable(left, top) {
-    const cellSize = 40; // Tamaño exacto de la cuadrícula
-    const groupWidth = cellSize * 12;
-    const groupHeight = cellSize * 2;
-    const objects = [];
-    const strokeColor = '#2d3748'; // Gris oscuro de la paleta oficial
-
-    const groupSpecs = [
-        { label: 'MILES', color: '#7fb5ff' },    // Celeste Suave
-        { label: 'MILLÓN', color: '#82d192' },   // Verde Suave
-        { label: 'MIL', color: '#fadd75' },      // Amarillo Suave
-        { label: 'UNIDAD', color: '#ef798a' }    // Rojo Suave / Coral
-    ];
-
-    groupSpecs.forEach((spec, gIndex) => {
-        const xOffset = gIndex * cellSize * 3;
-
-        // Celda superior (Título del grupo)
-        const topRect = new fabric.Rect({
-            left: xOffset - (groupWidth / 2) + (cellSize * 1.5),
-            top: -(cellSize),
-            width: cellSize * 3,
-            height: cellSize,
-            fill: spec.color,
-            stroke: strokeColor,
-            strokeWidth: 2,
-            originX: 'center',
-            originY: 'top'
-        });
-        
-        const topText = new fabric.Text(spec.label, {
-            left: xOffset - (groupWidth / 2) + (cellSize * 1.5),
-            top: -(cellSize) + (cellSize / 2),
-            fontSize: 14,
-            fontWeight: 'bold',
-            fontFamily: 'Inter',
-            fill: strokeColor,
-            originX: 'center',
-            originY: 'center'
-        });
-
-        objects.push(topRect, topText);
-
-        // Subceldas (C, D, U)
-        const subLabels = ['C', 'D', 'U'];
-        subLabels.forEach((label, sIndex) => {
-            const sx = xOffset + (sIndex * cellSize);
-            
-            const subRect = new fabric.Rect({
-                left: sx - (groupWidth / 2) + (cellSize / 2),
-                top: 0,
-                width: cellSize,
-                height: cellSize,
-                fill: spec.color,
-                stroke: strokeColor,
-                strokeWidth: 2,
-                originX: 'center',
-                originY: 'top'
-            });
-
-            const subText = new fabric.Text(label, {
-                left: sx - (groupWidth / 2) + (cellSize / 2),
-                top: (cellSize / 2),
-                fontSize: 18,
-                fontWeight: 'bold',
-                fontFamily: 'Inter',
-                fill: strokeColor,
-                originX: 'center',
-                originY: 'center'
-            });
-
-            objects.push(subRect, subText);
-        });
-    });
-
-    const group = new fabric.Group(objects, {
-        left: Math.round(left / cellSize) * cellSize,
-        top: Math.round(top / cellSize) * cellSize,
-        originX: 'center',
-        originY: 'top',
-        selectable: true,
-        hasControls: true,
-        lockRotation: true,
-        lockScalingX: true,
-        lockScalingY: true,
-        name: 'place-value-table',
-        role: 'math',
-        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.1)', blur: 10, offsetX: 4, offsetY: 4 })
-    });
-
-    // Magnetismo (Snapping) al mover
-    group.on('moving', function() {
-        this.set({
-            left: Math.round(this.left / cellSize) * cellSize,
-            top: Math.round(this.top / cellSize) * cellSize
-        });
-    });
-
-    canvas.add(group);
-    canvas.setActiveObject(group);
-    canvas.requestRenderAll();
-    saveState();
-}
-
 // --- Plano Cartesiano ---
 if (btnCartesian) {
     btnCartesian.addEventListener('click', () => {
@@ -926,15 +820,16 @@ function bindPaletteEvents() {
     });
 
     function updateBrush() {
-        canvas.freeDrawingBrush.width = currentStrokeWidth;
-        if (strokeWidthLabel) strokeWidthLabel.textContent = currentStrokeWidth;
+        const val = currentStrokeWidth;
+        canvas.freeDrawingBrush.width = val;
+        if (strokeWidthLabel) strokeWidthLabel.textContent = val;
         
         // También actualizar objetos seleccionados si los hay
         const activeObjects = canvas.getActiveObjects();
         if (activeObjects.length) {
             activeObjects.forEach(obj => {
                 if (obj.strokeWidth !== undefined) {
-                    obj.set({ strokeWidth: currentStrokeWidth });
+                    obj.set({ strokeWidth: val });
                 }
             });
             canvas.requestRenderAll();
@@ -942,10 +837,14 @@ function bindPaletteEvents() {
         }
     }
 
+    
+
     if (btnStrokeUp) {
         btnStrokeUp.addEventListener('click', () => {
-            if (currentStrokeWidth < 50) {
-                currentStrokeWidth++;
+            let val = currentStrokeWidth;
+            if (val < 50) {
+                val++;
+                
                 updateBrush();
             }
         });
@@ -953,8 +852,10 @@ function bindPaletteEvents() {
 
     if (btnStrokeDown) {
         btnStrokeDown.addEventListener('click', () => {
-            if (currentStrokeWidth > 1) {
-                currentStrokeWidth--;
+            let val = currentStrokeWidth;
+            if (val > 1) {
+                val--;
+                
                 updateBrush();
             }
         });
@@ -3386,6 +3287,62 @@ function createDice(left, top) {
     saveState();
 }
 
+// --- Tabla de Valor Posicional ---
+if (btnPlaceValueTable) {
+    btnPlaceValueTable.addEventListener('click', () => {
+        const center = canvas.getVpCenter();
+        const snappedX = snapToGrid(center.x);
+        const snappedY = snapToGrid(center.y);
+        createPlaceValueTable(snappedX, snappedY);
+    });
+}
+
+function createPlaceValueTable(left, top) {
+    const colWidth = 140;
+    const rowHeight = 60;
+    const cols = [
+        { title: 'Centenas', color: '#6bc0cc' },
+        { title: 'Decenas', color: '#ef798a' },
+        { title: 'Unidades', color: '#82d192' }
+    ];
+    let objs = [];
+    const totalWidth = colWidth * cols.length;
+    objs.push(new fabric.Rect({
+        left: 0, top: 0, width: totalWidth, height: rowHeight * 4,
+        fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 2, rx: 8, ry: 8, selectable: false
+    }));
+    cols.forEach((col, i) => {
+        objs.push(new fabric.Rect({
+            left: i * colWidth, top: 0, width: colWidth, height: rowHeight,
+            fill: col.color, stroke: '#cbd5e1', strokeWidth: 1,
+            selectable: false
+        }));
+        objs.push(new fabric.Text(col.title, {
+            left: (i * colWidth) + (colWidth / 2), top: rowHeight / 2,
+            fontSize: 20, fontWeight: 'bold', fill: '#ffffff',
+            originX: 'center', originY: 'center', selectable: false
+        }));
+        if (i > 0) {
+            objs.push(new fabric.Line([i * colWidth, 0, i * colWidth, rowHeight * 4], {
+                stroke: '#cbd5e1', strokeWidth: 2, selectable: false
+            }));
+        }
+    });
+    for (let r = 1; r < 4; r++) {
+        objs.push(new fabric.Line([0, r * rowHeight, totalWidth, r * rowHeight], {
+            stroke: '#e2e8f0', strokeWidth: 1, selectable: false
+        }));
+    }
+    const group = new fabric.Group(objs, {
+        left: left, top: top, originX: 'center', originY: 'center',
+        hasControls: true, hasBorders: true, lockScalingFlip: true, name: 'placeValueTable'
+    });
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    canvas.requestRenderAll();
+    saveState();
+}
+
 // --- Lógica de Cuadrícula Infinita y Zoom ---
 window.updateGridBackground = function() {
     if (!gridLayer) return;
@@ -3397,15 +3354,29 @@ window.updateGridBackground = function() {
 if (btnGrid) {
     btnGrid.addEventListener('click', () => {
         const wrapper = document.querySelector('.canvas-panel');
-        isGridActive = wrapper.classList.toggle('show-grid');
-        btnGrid.classList.toggle('active', isGridActive);
-        if (isGridActive) {
-            if (window.updateGridBackground) window.updateGridBackground();
-        }
+        const isShowing = wrapper.classList.toggle('show-grid');
+        btnGrid.classList.toggle('active', isShowing);
+        if (isShowing) window.updateGridBackground();
     });
 }
 
-// La actualización del fondo ya se maneja en los listeners principales arriba
+canvas.on('mouse:wheel', function(opt) {
+    const delta = opt.e.deltaY;
+    let zoom = canvas.getZoom();
+    zoom *= 0.999 ** delta;
+    if (zoom > 20) zoom = 20;
+    if (zoom < 0.05) zoom = 0.05;
+    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+    opt.e.preventDefault();
+    opt.e.stopPropagation();
+    window.updateGridBackground();
+});
+
+canvas.on('mouse:move', () => {
+    if (canvas.isPanning || canvas.isPanningView) {
+        window.updateGridBackground();
+    }
+});
 
 // Iniciar
 initToolbarCustomization();
