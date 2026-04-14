@@ -3318,7 +3318,7 @@ function createPlaceValueTable(left, top) {
     let objs = [];
     const superColWidth = subColWidth * 3;
     const totalWidth = superColWidth * superCols.length; 
-    const totalHeight = rowHeight * 4; 
+    const totalHeight = rowHeight * 2; 
 
     // Base de toda la clase
     objs.push(new fabric.Rect({
@@ -3372,20 +3372,22 @@ function createPlaceValueTable(left, top) {
     objs.push(new fabric.Line([0, rowHeight, totalWidth, rowHeight], {
         stroke: '#000000', strokeWidth: 1, selectable: false
     }));
-    objs.push(new fabric.Line([0, rowHeight * 2, totalWidth, rowHeight * 2], {
-        stroke: '#000000', strokeWidth: 2, selectable: false
-    }));
-    for (let r = 3; r <= 4; r++) {
-        objs.push(new fabric.Line([0, r * rowHeight, totalWidth, r * rowHeight], {
-            stroke: '#000000', strokeWidth: 1, selectable: false
-        }));
-    }
 
     const group = new fabric.Group(objs, {
         left: left, top: top, originX: 'center', originY: 'center',
         hasControls: true, hasBorders: true, lockScalingFlip: true, name: 'placeValueTable'
     });
     
+    // Magnetismo (Snap to grid) al mover
+    group.on('moving', function() {
+        if (isGridActive) {
+            group.set({
+                left: snapToGrid(group.left),
+                top: snapToGrid(group.top)
+            });
+        }
+    });
+
     canvas.add(group);
     canvas.setActiveObject(group);
     canvas.requestRenderAll();
