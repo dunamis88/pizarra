@@ -95,7 +95,7 @@ const btnCartesian = document.getElementById('btn-cartesian');
 
 let swatches = document.querySelectorAll('.swatch');
 let currentColor = '#2d3748';
-let currentStrokeWidth = 4;
+let currentStrokeWidth = 3;
 let currentPolygonSides = 5;
 const sidesValueDisplay = document.getElementById('sides-value');
 const btnSidesUp = document.getElementById('btn-sides-up');
@@ -223,10 +223,22 @@ function cancelCustomPolygon() {
     canvas.requestRenderAll();
 }
 
+function cancelLineDrawing() {
+    if ((isDrawingLine || isDrawingArrow) && activeLine) {
+        canvas.remove(activeLine);
+        activeLine = null;
+    }
+    lineTempPts = [];
+    isDrawingLine = false;
+    isDrawingArrow = false;
+    canvas.requestRenderAll();
+}
+
 function setActiveTool(activeBtn) {
     currentActiveTool = activeBtn; // Actualizar estado global
     if (isDrawingPolygon && activeBtn !== btnCustomPolygon) cancelCustomPolygon();
     if (isDrawingAngle && activeBtn !== btnAngle) cancelAngleDrawing();
+    if ((isDrawingLine || isDrawingArrow) && activeBtn !== btnLineTool && activeBtn !== btnArrowTool) cancelLineDrawing();
 
     toolBtns.forEach(btn => btn.classList.remove('active'));
     if (activeBtn) {
@@ -433,6 +445,7 @@ if (btnAddDice) {
         const center = canvas.getVpCenter();
         const pos = getOffsetCoords(center.x, center.y);
         createDice(pos.x, pos.y);
+        setActiveTool(btnSelect);
     });
 }
 
@@ -575,6 +588,7 @@ function createCoin(left, top) {
     canvas.add(coin);
     canvas.setActiveObject(coin);
     canvas.requestRenderAll();
+    setActiveTool(btnSelect);
     saveState();
 }
 
@@ -626,6 +640,7 @@ function createToken(left, top, type = 'circle') {
     canvas.add(shape);
     canvas.setActiveObject(shape);
     canvas.requestRenderAll();
+    setActiveTool(btnSelect);
     saveState();
 }
 
@@ -766,6 +781,7 @@ function createCartesianQuadrant(left, top) {
     canvas.add(group);
     canvas.setActiveObject(group);
     canvas.requestRenderAll();
+    setActiveTool(btnSelect);
     saveState();
 }
 
@@ -851,7 +867,7 @@ function bindPaletteEvents() {
             let val = currentStrokeWidth;
             if (val < 50) {
                 val++;
-                
+                currentStrokeWidth = val;
                 updateBrush();
             }
         });
@@ -862,7 +878,7 @@ function bindPaletteEvents() {
             let val = currentStrokeWidth;
             if (val > 1) {
                 val--;
-                
+                currentStrokeWidth = val;
                 updateBrush();
             }
         });
@@ -1066,7 +1082,8 @@ function createInteractiveLine(p1, p2, color, width, lineId) {
     const line = new fabric.Line([p1.x, p1.y, p2.x, p2.y], {
         stroke: color,
         strokeWidth: width,
-        selectable: true,
+        selectable: currentActiveTool === btnSelect,
+        evented: currentActiveTool === btnSelect || isErasing,
         hasBorders: false,
         hasControls: false,
         perPixelTargetFind: true,
@@ -1120,7 +1137,8 @@ function createInteractiveArrow(p1, p2, color, width) {
     });
     
     const group = new fabric.Group([line, triangle], {
-        selectable: true,
+        selectable: currentActiveTool === btnSelect,
+        evented: currentActiveTool === btnSelect || isErasing,
         hasBorders: false,
         hasControls: true,
         strokeUniform: true,
@@ -1551,19 +1569,39 @@ function getDefaultShapeStyle() {
 
 function processNewShape(shape) {
     canvas.isDrawingMode = false;
-    canvas.add(shape);
-    canvas.centerObject(shape);
     
+    const center = canvas.getVpCenter();
+    
+    // Calcular el tamaño real de la figura para poder ponerla en el centro manualmente
+    // pero manteniendo el ancla originX='left' y originY='top' para el grid snap.
+    let w = shape.width * shape.scaleX || 0;
+    let h = shape.height * shape.scaleY || 0;
+    if (shape.type === 'circle') {
+        w = shape.radius * 2 * shape.scaleX;
+        h = shape.radius * 2 * shape.scaleY;
+    }
+
+    shape.set({
+        left: center.x - (w / 2),
+        top: center.y - (h / 2),
+        originX: 'left',
+        originY: 'top'
+    });
+
     if (isGridActive) {
         shape.set({
             left: snapToGrid(shape.left),
             top: snapToGrid(shape.top)
         });
-        shape.setCoords();
     }
     
-    // No seleccionamos automáticamente para evitar cambios de color accidentales
+    canvas.add(shape);
+    shape.setCoords();
+    
     setActiveTool(btnSelect);
+    canvas.setActiveObject(shape);
+    canvas.requestRenderAll();
+    saveState();
 }
 
 document.getElementById('btn-square').addEventListener('click', () => {
@@ -2312,6 +2350,7 @@ function addProtractor(inverted = false) {
         canvas.add(protractor);
         canvas.setActiveObject(protractor);
         canvas.renderAll();
+        setActiveTool(btnSelect);
     });
 }
 
@@ -2401,6 +2440,7 @@ function addRuler() {
         canvas.add(ruler);
         canvas.setActiveObject(ruler);
         canvas.renderAll();
+        setActiveTool(btnSelect);
     });
 }
 
