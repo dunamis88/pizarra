@@ -2235,10 +2235,11 @@ function addProtractor(inverted = false) {
     svgContent += `</svg>`;
     
     fabric.loadSVGFromString(svgContent, (objects, options) => {
+        const center = canvas.getVpCenter();
         const protractor = fabric.util.groupSVGElements(objects, options);
         protractor.set({
-            left: canvas.width / 2,
-            top: canvas.height / 2,
+            left: center.x,
+            top: center.y,
             originX: 'center',
             originY: 'bottom',
             cornerColor: '#7fb5ff',
@@ -2389,10 +2390,11 @@ function addRuler() {
     svgContent += `</svg>`;
     
     fabric.loadSVGFromString(svgContent, (objects, options) => {
+        const center = canvas.getVpCenter();
         const ruler = fabric.util.groupSVGElements(objects, options);
         ruler.set({
-            left: canvas.width / 2,
-            top: canvas.height / 2,
+            left: center.x,
+            top: center.y,
             originX: 'center',
             originY: 'center',
             cornerColor: '#7fb5ff',
