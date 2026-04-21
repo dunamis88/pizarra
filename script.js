@@ -15,12 +15,14 @@ const geometryPalette = document.getElementById('geometry-palette');
 const rulesPalette = document.getElementById('rules-palette');
 const stickerPalette = document.getElementById('sticker-palette');
 const diceTokenPalette = document.getElementById('dice-token-palette');
+const algebraPalette = document.getElementById('algebra-palette');
 const sidePalette = document.getElementById('side-palette');
 
 const btnGeometryMenu = document.getElementById('btn-geometry-menu');
 const btnRulesMenu = document.getElementById('btn-rules-menu');
 const btnDiceMenu = document.getElementById('btn-dice-menu');
 const btnSystemIcons = document.getElementById('btn-system-icons');
+const btnAlgebraMenu = document.getElementById('btn-algebra-menu');
 const btnTogglePalette = document.getElementById('btn-toggle-palette');
 const btnGrid = document.getElementById('btn-grid');
 const gridLayer = document.getElementById('grid-layer');
@@ -381,11 +383,13 @@ function closeAllPanels() {
     if (rulesPalette) rulesPalette.classList.remove('open');
     if (stickerPalette) stickerPalette.classList.remove('open');
     if (diceTokenPalette) diceTokenPalette.classList.remove('open');
+    if (algebraPalette) algebraPalette.classList.remove('open');
     
     if (btnGeometryMenu) btnGeometryMenu.classList.remove('active');
     if (btnRulesMenu) btnRulesMenu.classList.remove('active');
     if (btnSystemIcons) btnSystemIcons.classList.remove('active');
     if (btnDiceMenu) btnDiceMenu.classList.remove('active');
+    if (btnAlgebraMenu) btnAlgebraMenu.classList.remove('active');
 }
 
 if(btnGeometryMenu && geometryPalette) {
@@ -407,6 +411,18 @@ if(btnSystemIcons && stickerPalette) {
         if (!isOpen) {
             stickerPalette.classList.add('open');
             btnSystemIcons.classList.add('active');
+        }
+        e.stopPropagation();
+    });
+}
+
+if(btnAlgebraMenu && algebraPalette) {
+    btnAlgebraMenu.addEventListener('click', (e) => {
+        const isOpen = algebraPalette.classList.contains('open');
+        closeAllPanels();
+        if (!isOpen) {
+            algebraPalette.classList.add('open');
+            btnAlgebraMenu.classList.add('active');
         }
         e.stopPropagation();
     });
@@ -3466,5 +3482,170 @@ canvas.on('mouse:move', () => {
 // Iniciar
 initToolbarCustomization();
 setTimeout(restoreToolbarLayout, 50);
+
+// --- Álgebra y Ecuaciones ---
+const btnAddBalance = document.getElementById('btn-add-balance');
+const btnAddX = document.getElementById('btn-add-x');
+const xValueInput = document.getElementById('x-value-input');
+
+if (btnAddBalance) {
+    btnAddBalance.addEventListener('click', () => {
+        const center = canvas.getVpCenter();
+        createBalanceScale(center.x, center.y);
+        setActiveTool(btnSelect);
+    });
+}
+if (btnAddX) {
+    btnAddX.addEventListener('click', () => {
+        const center = canvas.getVpCenter();
+        createAlgebraBlock(center.x, center.y, 'X');
+        setActiveTool(btnSelect);
+    });
+}
+[1, 2, 3, 5].forEach(val => {
+    const btn = document.getElementById(`btn-add-${val}`);
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const center = canvas.getVpCenter();
+            createAlgebraBlock(center.x + (Math.random()*40 - 20), center.y + (Math.random()*40 - 20), val.toString());
+            setActiveTool(btnSelect);
+        });
+    }
+});
+
+function createAlgebraBlock(x, y, label) {
+    const isVariable = (label === 'X');
+    const size = 50;
+    const bg = isVariable ? '#ef4444' : '#fbbf24';
+    const textCol = isVariable ? '#ffffff' : '#1e293b';
+    
+    const rect = new fabric.Rect({
+        width: size, height: size,
+        fill: bg, rx: 8, ry: 8,
+        stroke: '#cbd5e1', strokeWidth: 2,
+        originX: 'center', originY: 'center',
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.2)', blur: 4, offsetX: 2, offsetY: 2 })
+    });
+    
+    const text = new fabric.Text(label, {
+        fontSize: 26, fontWeight: 'bold', fill: textCol, fontFamily: 'Arial',
+        originX: 'center', originY: 'center'
+    });
+    
+    const block = new fabric.Group([rect, text], {
+        left: x, top: y, originX: 'center', originY: 'center',
+        hasControls: false, hasBorders: false,
+        algebraType: isVariable ? 'variable' : 'constant',
+        algebraValue: isVariable ? 0 : parseInt(label)
+    });
+    
+    canvas.add(block);
+    canvas.setActiveObject(block);
+    canvas.requestRenderAll();
+    saveState();
+}
+
+function createBalanceScale(x, y) {
+    const armW = 400;
+    const panDrop = 110;
+    
+    // Brazo principal grueso
+    const arm = new fabric.Rect({
+        left: 0, top: 0, width: armW, height: 12, fill: '#475569', rx: 6, ry: 6, originX: 'center', originY: 'center'
+    });
+    
+    // Platillos colgantes
+    const lLine = new fabric.Line([-armW/2 + 20, 0, -armW/2 + 20, panDrop], { stroke: '#94a3b8', strokeWidth: 3, originX: 'center', originY: 'center' });
+    const lPan = new fabric.Path('M -40 0 Q 0 20 40 0 Z', { left: -armW/2 + 20, top: panDrop, fill: '#64748b', originX: 'center', originY: 'top' });
+    
+    const rLine = new fabric.Line([armW/2 - 20, 0, armW/2 - 20, panDrop], { stroke: '#94a3b8', strokeWidth: 3, originX: 'center', originY: 'center' });
+    const rPan = new fabric.Path('M -40 0 Q 0 20 40 0 Z', { left: armW/2 - 20, top: panDrop, fill: '#64748b', originX: 'center', originY: 'top' });
+    
+    // Centro/Pin
+    const pin = new fabric.Circle({ radius: 12, fill: '#ef4444', left: 0, top: 0, originX: 'center', originY: 'center' });
+
+    // Grouping the arm hardware that will physically rotate
+    const scaleArmGroup = new fabric.Group([arm, lLine, lPan, rLine, rPan, pin], {
+        left: x, top: y - 100, originX: 'center', originY: 'center',
+        hasControls: false, hasBorders: false, lockMovementX: true, lockMovementY: true, selectable: true,
+        isScaleArm: true
+    });
+    
+    // Soporte base rígido
+    const base = new fabric.Path('M 0 0 L 30 140 L -30 140 Z', {
+        fill: '#e2e8f0', stroke: '#94a3b8', strokeWidth: 2,
+        left: x, top: y - 30, originX: 'center', originY: 'center',
+        selectable: true, evented: true, hasControls: false, hasBorders: false, lockMovementX: true, lockMovementY: true
+    });
+    
+    // Contenedor general para mover todo el ensamble unido
+    const scaleGroup = new fabric.Group([base, scaleArmGroup], {
+        left: x, top: y, originX: 'center', originY: 'center',
+        hasControls: true, hasBorders: true, lockScalingX: true, lockScalingY: true, lockRotation: true,
+        isScaleContainer: true, name: 'balanza'
+    });
+    
+    canvas.add(scaleGroup);
+    canvas.setActiveObject(scaleGroup);
+    canvas.requestRenderAll();
+    saveState();
+}
+
+// Sistema de Físicas de Balanzas
+function updateBalances() {
+    const scaleContainers = canvas.getObjects().filter(o => o.isScaleContainer);
+    const blocks = canvas.getObjects().filter(o => o.algebraType);
+    
+    if (scaleContainers.length === 0) return;
+    
+    let xVal = 3;
+    if (xValueInput) {
+        xVal = parseFloat(xValueInput.value) || 0;
+    }
+    
+    scaleContainers.forEach(scale => {
+        let leftWeight = 0;
+        let rightWeight = 0;
+        
+        const cx = scale.left;
+        const cy = scale.top;
+        const armW = 400 * scale.scaleX;
+        const panDrop = 110 * scale.scaleY;
+        
+        // Zonas de recolección de peso estáticas y generosas alrededor de los platillos
+        const leftZone = { x1: cx - armW/2 - 60, x2: cx - armW/2 + 80, y1: cy - 100, y2: cy + panDrop + 100 };
+        const rightZone = { x1: cx + armW/2 - 80, x2: cx + armW/2 + 60, y1: cy - 100, y2: cy + panDrop + 100 };
+        
+        blocks.forEach(b => {
+            const bx = b.left;
+            const by = b.top;
+            let weight = b.algebraType === 'variable' ? xVal : b.algebraValue;
+            
+            if (bx >= leftZone.x1 && bx <= leftZone.x2 && by >= leftZone.y1 && by <= leftZone.y2) {
+                leftWeight += weight;
+            } else if (bx >= rightZone.x1 && bx <= rightZone.x2 && by >= rightZone.y1 && by <= rightZone.y2) {
+                rightWeight += weight;
+            }
+        });
+        
+        let diff = rightWeight - leftWeight;
+        let targetAngle = diff * 4; 
+        if (targetAngle > 25) targetAngle = 25;
+        if (targetAngle < -25) targetAngle = -25;
+        
+        // Target internal arm by identifying its sub-group inside the master group
+        scale._objects.forEach(o => {
+            if (o.isScaleArm) o.set('angle', targetAngle);
+        });
+    });
+    
+    canvas.requestRenderAll();
+}
+
+canvas.on('object:moving', updateBalances);
+canvas.on('object:modified', updateBalances);
+if (xValueInput) {
+    xValueInput.addEventListener('input', updateBalances);
+}
 
 
