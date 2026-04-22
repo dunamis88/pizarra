@@ -451,6 +451,21 @@
     
 
     
+    <!-- Confirmation Modal (Delete All) -->
+    <div class="modal-overlay" id="confirm-modal" style="display: none; z-index: 100000;">
+        <div class="confirm-card">
+            <div class="confirm-header">
+                <i class='bx bx-trash' style="color: #ef4444; font-size: 2rem; margin-bottom: 10px;"></i>
+                <h3>¿Borrar todo?</h3>
+                <p>Esta acción eliminará todos los dibujos y elementos de la pizarra. No se puede deshacer.</p>
+            </div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" id="btn-cancel-delete">Cancelar</button>
+                <button class="btn-confirm-delete" id="btn-confirm-clear">Borrar Todo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating group icon panel (simple dropdown) -->
     <div id="group-icon-panel" style="
         display: none;
